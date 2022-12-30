@@ -1,4 +1,3 @@
-nameSuffix: -qa
 namespace: gitopsdemo-qa
 
 bases:

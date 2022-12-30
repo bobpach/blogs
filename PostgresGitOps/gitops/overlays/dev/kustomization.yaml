@@ -1,4 +1,3 @@
-nameSuffix: -dev
 namespace: gitopsdemo-dev
 
 bases:

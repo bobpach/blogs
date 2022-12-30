@@ -1,4 +1,3 @@
-nameSuffix: -prod
 namespace: gitopsdemo-prod
 
 generatorOptions:
