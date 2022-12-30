@@ -1,0 +1,49 @@
+apiVersion: postgres-operator.crunchydata.com/v1beta1
+kind: PostgresCluster
+metadata:
+  name: hippo
+spec:
+  users:
+    - name: hippo
+      databases:
+         - hippodb
+  image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres:ubi8-14.6-0
+  postgresVersion: 14
+  shutdown: false
+  port: 5432
+  instances:
+    - name: 'pgdb'
+      replicas: 1
+      resources:
+        limits:
+          cpu: 1.0
+          memory: 1Gi
+      dataVolumeClaimSpec:
+        accessModes:
+        - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: 1Gi
+
+  backups:
+    pgbackrest:
+      image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.41-0
+      repos:
+      - name: repo1
+        volume:
+          volumeClaimSpec:
+            accessModes:
+            - "ReadWriteOnce"
+            resources:
+              requests:
+                storage: 1Gi
+
+  patroni:
+    dynamicConfiguration:
+      postgresql:
+        parameters:
+          max_parallel_workers: 2
+          max_worker_processes: 2
+          shared_buffers: 256MB
+          work_mem: 5MB
+          archive_timeout: 600

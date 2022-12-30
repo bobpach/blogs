@@ -1,0 +1,58 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: vector-config
+  labels:
+    app.kubernetes.io/component: Agent
+    app.kubernetes.io/instance: vector
+    app.kubernetes.io/name: vector
+    app.kubernetes.io/version: 0.26.0-distroless-libc
+data:
+  agent.yaml: |
+    data_dir: /pgdata
+    api:
+      enabled: true
+      address: 127.0.0.1:8686
+      playground: false
+    sources:
+      postgres_logs:
+        type: file
+        ignore_older_secs: 600
+        include: ["/pgdata/*/log/postgresql*.log"]
+        read_from: "beginning"
+        multiline:
+          start_pattern: '^[^\s]'
+          mode: "continue_through"
+          condition_pattern: '^[\s]+'
+          timeout_ms: 60000
+      vector_logs:
+        type: "internal_logs"
+    transforms:
+      audit_logs:
+        type: "filter"
+        inputs: ["postgres_logs"]         
+        condition: 'contains(string!(.message), "AUDIT:", case_sensitive: false)'
+    sinks:
+      stdout:
+        type: "console"
+        inputs: ["vector_logs"]
+        encoding:
+          codec: "text"
+        target: "stdout"
+      aws_s3:
+        type: aws_s3
+        endpoint: "https://vectordemo-<your_account>.s3-accesspoint.<your_region>.amazonaws.com"
+        inputs: ["audit_logs"]
+        acl: bucket-owner-full-control
+        bucket: "pgaudit"
+        content_encoding: gzip
+        encoding:
+          codec: text
+        content_type: text/x-log
+        filename_append_uuid: false
+        filename_extension: gzip
+        filename_time_format: "%+"
+        key_prefix: pg-audit-logs-%F/
+        storage_class: STANDARD
+        compression: gzip
+        region: us-east-1

@@ -1,0 +1,128 @@
+apiVersion: postgres-operator.crunchydata.com/v1beta1
+kind: PostgresCluster
+metadata:
+  name: hippo-ha
+spec:
+  image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres:ubi8-14.6-0
+  postgresVersion: 14
+  shutdown: false
+  instances:
+    - name: pgha1
+      replicas: 2
+      containers:
+      - resources:
+          limits:
+            cpu: 200m
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 1Gi
+        terminationMessagePath: /dev/termination-log
+        name: vector
+        env:
+          - name: VECTOR_SELF_NODE_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: spec.nodeName
+          - name: VECTOR_SELF_POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: VECTOR_SELF_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: vector-s3-key
+                name: pgo-s3-creds
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: vector-s3-key-secret
+                name: pgo-s3-creds
+        imagePullPolicy: IfNotPresent
+        stdin: true
+        tty: true
+        volumeMounts:
+          - name: postgres-data
+            readOnly: false
+            mountPath: /pgdata
+          - name: postgres-config
+            readOnly: false
+            mountPath: /etc/vector
+        terminationMessagePolicy: File
+        image: timberio/vector:nightly-distroless-libc
+        args:
+          - '--config-dir'
+          - /etc/vector/
+      dataVolumeClaimSpec:
+        accessModes:
+        - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: 1Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  postgres-operator.crunchydata.com/cluster: hippo-ha
+                  postgres-operator.crunchydata.com/instance-set: pgha1
+  config:
+    files:
+    - configMap:
+        name: vector-config
+  backups:
+    pgbackrest:
+      image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.41-0
+      repos:
+      - name: repo1
+        volume:
+          volumeClaimSpec:
+            accessModes:
+            - "ReadWriteOnce"
+            resources:
+              requests:
+                storage: 1Gi
+        schedules:
+          full: "* 1 * * 0"
+          incremental: "* 1 * * 1-6"
+  monitoring:
+    pgmonitor:
+      exporter:
+        image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres-exporter:ubi8-5.2.1-0
+  proxy:
+    pgBouncer:
+      image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbouncer:ubi8-1.17-3
+      replicas: 2
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  postgres-operator.crunchydata.com/cluster: hippo-ha
+                  postgres-operator.crunchydata.com/role: pgbouncer
+  patroni:
+    dynamicConfiguration:
+      synchronous_mode: false
+      postgresql:
+        parameters:
+          log_checkpoints: "on"
+          log_statement: "mod"
+          log_line_prefix: '%t [%p]: host=%h application=%a user=%u,db=%d '
+          log_lock_waits: "on"
+          logging_collector: "on"
+          shared_preload_libraries: pgaudit.so
+          pgaudit.log: 'write, ddl, role'
+          pgaudit.log_level: "notice"
