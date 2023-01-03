@@ -3,4 +3,5 @@ bases:
 
 patchesStrategicMerge:
   - backup.yaml
+  - annotate.yaml
 
