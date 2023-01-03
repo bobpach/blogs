@@ -1,0 +1,6 @@
+bases:
+  - ../../base/postgres
+
+patchesStrategicMerge:
+  - backup.yaml
+
