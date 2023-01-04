@@ -2,8 +2,6 @@ apiVersion: postgres-operator.crunchydata.com/v1beta1
 kind: PostgresCluster
 metadata:
   name: hippo
-  annotations:
-    postgres-operator.crunchydata.com/pgbackrest-backup: $(date)
 spec:
   backups:
     pgbackrest:
