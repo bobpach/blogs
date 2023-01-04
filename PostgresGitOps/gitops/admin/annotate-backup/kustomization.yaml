@@ -2,6 +2,6 @@ bases:
   - ../../base/postgres
 
 patchesStrategicMerge:
-  - backup.yaml
+  - annotate.yaml
 
 
