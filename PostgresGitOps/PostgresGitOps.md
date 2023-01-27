@@ -4,17 +4,16 @@ It is critical that Postgres clusters are optimized, updated regularly and have 
 
 To date, infrastructure management has mostly been a manual process.  However, with the adoption of [Gitops](https://about.gitlab.com/topics/gitops/) and a little help from a continuos delivery tool like [Argo CD](https://argo-cd.readthedocs.io/en/stable/) you can reduce the complexity and even automate your Day 2 operations. The declarative nature of Crunchy Postgres for Kubernetes (CPK) makes it a perfect candidate for gitops. Let's take a look at how gitops and Argo CD can help perform Day 2 Operations on your Crunchy Data Postgres cluster on kubernetes.
 
-# The "Git" in Gitops
+## The "Git" in Gitops
 
 In order to perform gitops operations you must check-in your infrastructure files in Git.  Im my github repo I have a file structure that separates the files into admin, base and overlay directories. This structure helps isolate files so they can be independently run via [Kustomize](https://kustomize.io/) in Argo CD.
-
-
 
 - PostgresGitOps:
   - gitops:
     - admin:
       - reset-hippo-password:
-        <details><summary>- kustomization.yaml</summary>
+        <details>
+          <summary>- kustomization.yaml</summary>
 
         ``` yaml
         resources:
@@ -285,6 +284,33 @@ In order to perform gitops operations you must check-in your infrastructure file
 
 
 
-In gitops, Git is used as the [Single Source of Truth](https://en.wikipedia.org/wiki/Single_source_of_truth) to manage all infrastructure files.  The files used in the preceding examples manage artifacts to deploy the Postgres clusters and perform declarative Day 2 Operations on the those clusters. You can copy and paste the example files into your own files and check them in to your git repo.</br>
+In gitops, Git is used as the [Single Source of Truth](https://en.wikipedia.org/wiki/Single_source_of_truth) to manage all infrastructure files.  The files used in the preceding examples manage artifacts to deploy the Postgres clusters and perform declarative Day 2 Operations on them. You can copy and paste the example files into your own files and check them in to your git repo.</br>
 
 ***Note:*** Ensure that you replace the ```<cluster_name>``` place holder with your own cluster name and use the same value in all of the example files.
+
+## Argo CD
+
+Argo CD is a declarative, GitOps continuous delivery tool for Kubernetes.  It provides a UI and CLI that makes it easy to deploy and manage your applications running on Kubernetes. To install Argo CD in your kubernetes cluster simply run the following:
+
+``` bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+Additional details can be found in their [getting started guide](https://argo-cd.readthedocs.io/en/stable/getting_started/).
+
+To access the Argo CD UI I have changed the argocd-sever service from ClusterIP to LoadBalancer.  This provides and external IP that I can access from my browser.  You could also use a port forward or an ingress.
+
+``` bash
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+```
+
+Once you have launched the Argo CD UI you can login.  The initial password for the ***admin*** account can be retrieved from the argocd-initial-admin-secret.
+
+``` bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+```
+
+### Configuring ARGO CD
+Now that you have logged in you are ready to start configuring Argo CD to deploy and manage your Postgres cluster on Kubernetes.  The Argo CD UI should look like this:
+
