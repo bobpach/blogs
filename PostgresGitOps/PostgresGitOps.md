@@ -313,4 +313,55 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 
 ### Configuring ARGO CD
 Now that you have logged in you are ready to start configuring Argo CD to deploy and manage your Postgres cluster on Kubernetes.  The Argo CD UI should look like this:
+![](pics/app-screen.png)
+#### Add the Git Repository
+You need to add your git repository to Argo CD.  Click on 'Settings' in the navigation bar on the left.
 
+![](pics/settings.png)
+Now click on 'Repositories' and the 'Connect Repo' buttons.  Provide the necessary information and click 'Save'.  Your should now have a connected repo.  If not, please review your settings and try again.
+![](pics/connect-repo.png) 
+#### Create the Projects
+Argo CD uses projects to logically group applications.  I created three projects:
+* deploy
+* reset-password
+* start-stop
+  
+![](pics/project-list.png)
+To create a project click on 'Settings' in the navigation bar on the left.  Click on 'Project' and then the 'New Project' button.  Provide a project name and description in the panel on the right and click create.
+Add your repo to 'Source Repositories' and add your Kubernetes cluster to 'Destinations' as seen here:
+![](pics/deploy-project.png)
+***Note:*** For this blog I deployed Argo CD in the same Kubernetes cluster that I am deploying Postgres into.  Please refer to the [Argo CD Documentation](https://argo-cd.readthedocs.io/en/stable/) for other deployment options.
+
+Repeat the steps for each project you want to create.
+
+### Creating Applications
+Argo CD uses applications to perform declarative operations on its configured Kubernetes cluster. We will create several applications to deploy Postgres clusters and perform day 2 operations across 3 namespaces.
+
+***Namespaces***
+* gitopsdemo-dev
+* gitopsdemo-qa
+* gitopsdemo-prod
+
+***Operations***
+* deploy-postgres
+* start-postgres
+* stop-postgres
+* reset-password
+#### Deploy
+Let's start with the deploy application.  Click on 'Applications' in the navigation bar on the left.  Click on the 'New App' button.  We will create 'deploy-dev' application.  Notice that I am assigning this to teh deploy project and the gitopsdemo-dev namespace.  I have also added my github repo that I previously registered and I assigned the correct repo path to where the kustomization file resides.
+![](pics/deploy-dev1.png)
+![](pics/deploy-dev2.png)
+
+Continue two additional applications for the two remaining namespaces naming them accordingly: deploy-qa, deploy-prod.  When you are done your application list for teh deploy project will look like this:
+![](pics/deploy-app-list.png)
+
+#### Start / Stop
+Now let's create the applications for starting and stopping the postgres cluster in our start-stop project for all three namespaces.  Ensure that you select the correct namespace and the correct github repo path for each application.  Your completed application list for the start-stop project will look like this:
+![](pics/start-stop-app-list.png)
+
+#### Reset Password
+The Postgres Operator (PGO) in CPK will automatically recreate a password in a secret it manages if that password is is blanked out ("").  We will use this feature in our next set of applications.  Create a reset-password application in the reset-password project for each namespace.  Again, be mindful to select the proper namespace and github repo path for each application.  These applications will be configure like the previous with one exception.  Check the 'Skip Schema Validation' checkbox.  Kubernetes does not like empty passwords in secrets.  However, the password will be immediately  regenerated with a new random password by the operator.
+![](pics/reset-password-app.png)
+
+Your completed application list for the reset-password project will look like this:
+![](pics/reset-password-app-list.png)
