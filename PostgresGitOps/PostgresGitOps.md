@@ -6,12 +6,12 @@ To date, infrastructure management has mostly been a manual process.  However, w
 
 ## The "Git" in Gitops
 
-In order to perform gitops operations you must check-in your infrastructure files in Git.  Im my github repo I have a file structure that separates the files into admin, base and overlay directories. This structure helps isolate files so they can be independently run via [Kustomize](https://kustomize.io/) in Argo CD.
+In order to perform gitops operations you must check-in your infrastructure files to Git.  Im my github repo I have a file structure that separates the files into admin, base and overlay directories. This structure helps isolate files so they can be independently run via [Kustomize](https://kustomize.io/) in Argo CD.
 
 - PostgresGitOps:
   - gitops:
     - admin:
-      - reset-hippo-password:
+      - reset-password:
         <details>
           <summary>- kustomization.yaml</summary>
 
