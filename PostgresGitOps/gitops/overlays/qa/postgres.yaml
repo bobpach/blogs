@@ -4,6 +4,19 @@ metadata:
   name: hippo
 spec:
   postgresVersion: 14
+  instances:
+    - name: 'pgdb'
+      replicas: 2
+      resources:
+        limits:
+          cpu: 1.0
+          memory: 1Gi
+      dataVolumeClaimSpec:
+        accessModes:
+        - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: 5Gi
 
   backups:
     pgbackrest:
