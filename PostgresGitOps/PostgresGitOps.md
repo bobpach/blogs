@@ -337,16 +337,20 @@ Repeat the steps for each project you want to create.
 ### Creating Applications
 Argo CD uses applications to perform declarative operations on its configured Kubernetes cluster. We will create several applications to deploy Postgres clusters and perform day 2 operations across 3 namespaces.
 
-***Namespaces***
-* gitopsdemo-dev
-* gitopsdemo-qa
-* gitopsdemo-prod
-
 ***Operations***
 * deploy-postgres
 * start-postgres
 * stop-postgres
 * reset-password
+
+Create the namespaces in the same kubernetes cluster that you deployed Argo CD into.
+
+``` bash
+kubectl create namespace gitopsdemo-dev
+kubectl create namespace gitopsdemo-qa
+kubectl create namespace gitopsdemo-prod
+```
+
 #### Deploy
 Let's start with the deploy application.  Click on 'Applications' in the navigation bar on the left.  Click on the 'New App' button.  We will create 'deploy-dev' application.  Notice that I am assigning this to teh deploy project and the gitopsdemo-dev namespace.  I have also added my github repo that I previously registered and I assigned the correct repo path to where the kustomization file resides.
 ![](pics/deploy-dev1.png)
@@ -365,3 +369,39 @@ The Postgres Operator (PGO) in CPK will automatically recreate a password in a s
 
 Your completed application list for the reset-password project will look like this:
 ![](pics/reset-password-app-list.png)
+
+## Gitops in Action
+You have taken the time to configure Argo CD and setup all of the applications you require  to deploy Postgres clusters and perform day 2 operations.  Now its time to reap the benefits of your efforts.
+
+### Deploy
+Click on the 'Sync' button in the deploy-dev application in the deploy project:
+![](pics/deploy-dev-synch-request.png)
+Click on the 'Synchronize' button on the right panel.
+Now to the same for the deploy-qa and deploy-prod applications.  You will notice that each application is now marked as "Synched'.
+![](pics/deploy-apps-synched.png)
+I can see that Postgres was deployed and backed when I request the pod list from the three namespaces:
+
+``` bash
+robertpacheco@Roberts-MBP kustomize % kubectl -n gitopsdemo-dev get pods
+NAME                      READY   STATUS      RESTARTS   AGE
+hippo-backup-vh2n-dpw8f   0/1     Completed   0          4m36s
+hippo-pgdb-frxt-0         4/4     Running     0          5m30s
+hippo-repo-host-0         2/2     Running     0          5m30s
+
+robertpacheco@Roberts-MBP kustomize % kubectl -n gitopsdemo-qa get pods
+NAME                      READY   STATUS      RESTARTS   AGE
+hippo-backup-f6zq-sdj5z   0/1     Completed   0          3m43s
+hippo-pgdb-56tb-0         5/5     Running     0          4m38s
+hippo-repo-host-0         2/2     Running     0          4m38s
+
+robertpacheco@Roberts-MBP kustomize % kubectl -n gitopsdemo-prod get pods
+NAME                      READY   STATUS      RESTARTS   AGE
+hippo-backup-jgtw-j9xwx   0/1     Completed   0          3m35s
+hippo-pgdb-4lnh-0         5/5     Running     0          4m17s
+hippo-pgdb-7lh7-0         5/5     Running     0          4m17s
+hippo-repo-host-0         2/2     Running     0          4m16s
+```
+
+Notice the Postgres cluster differences between namespaces.
+### Start / Stop
+Let's stop the dev env
