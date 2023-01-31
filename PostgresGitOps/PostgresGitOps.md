@@ -490,7 +490,7 @@ Update that file with the latest images for the same major version:
 * Postgres: image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres:ubi8-14.6-0
 * pgBackrest: image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.41-0
 
-When you check these changes into your github repo you will see that the applications in the deploy project are now listed as 'OutOfSynch'.
+Once you check these changes into your github repo click the 'Refresh Apps' button at the top of the applications screen for the deploy project.  You will see that the applications in the deploy project are now listed as 'OutOfSynch'.
 
 ``` bash
 robertpacheco@Roberts-MBP ~ % kubectl exec -n gitopsdemo-dev hippo-pgdb-frxt-0 -c database -it -- bash
@@ -508,3 +508,29 @@ postgres=# select version();
 ```
 
 Select the deploy-dev application from the deploy project.  Click on 'Synch' and then click on 'Synchronize' in the right panel. 
+
+When you synchronize the Postgres Operator will bring down the repo host and a postgres replica pod.  Those pods will immediately be restarted with the new images.  Each Postgres replica pod will be upgraded one at a time until just the primary pod is left.  The primary pod will then automatically failover to a recently upgraded replica pod and will then restart with the new image coming back up as a replica.  If you only have one postgres postgres pod, as we do in teh dev cluster, that pod immediately gets upgraded.
+
+You will notice that the deploy-dev application is now marked asd 'Synched'.
+
+Lets check the Postgres version now.
+``` bash
+robertpacheco@Roberts-MBP ~ % kubectl exec -n gitopsdemo-dev hippo-pgdb-frxt-0 -c database -it -- bash
+bash-4.4$ psql
+psql (14.6)
+Type "help" for help.
+
+postgres=# select version();
+                                                 version
+
+---------------------------------------------------------------------------------------------------------
+ PostgreSQL 14.6 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-15), 64-bit
+(1 row)
+```
+
+Using this approach allows you to test your upgrade in the dev cluster before applying it to qa and prod.  Once you feel confident that the postgres cluster and its consumers are working as expected you can synchronize the deploy-qa application and then once qa testing is complete you can synchronize the deploy-prod application.
+
+You changed the images in one file and were able to upgrade all three Postgres clusters thanks to Argo CD and gitops.
+
+## Summary
+Crunchy Postgres for Kubernetes is a powerful tool to rapidly deploy Postgres clusters in any Kubernetes environment.  The declarative nature of CPK makes it a perfect candidate for gitops.  Administrative responsibilities don't stop once the deployment is complete.  Being able to perform day 2 operations at scale is crucial to ensure the security and stability of your Postgres clusters.  Argo CD and gitops can simplify the day to day operations needed by your enterprise deployments.
