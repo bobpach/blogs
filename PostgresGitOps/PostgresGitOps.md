@@ -2,7 +2,9 @@
 
 It is critical that Postgres clusters are optimized, updated regularly and have routine maintenance to ensure that the environment stays stable, secure and performant.  The process of achieving this is often referred to as Day 2 operations.  Performing Day 2 operations can be complex and time consuming; especially if you are supporting a large number Postgres clusters.
 
-To date, infrastructure management has mostly been a manual process.  However, with the adoption of [Gitops](https://about.gitlab.com/topics/gitops/) and a little help from a continuos delivery tool like [Argo CD](https://argo-cd.readthedocs.io/en/stable/) you can reduce the complexity and even automate your Day 2 operations. The declarative nature of Crunchy Postgres for Kubernetes (CPK) makes it a perfect candidate for gitops. Let's take a look at how gitops and Argo CD can help perform Day 2 Operations on your Crunchy Data Postgres cluster on kubernetes.
+To date, infrastructure management has mostly been a manual process.  However, with the adoption of [Gitops](https://about.gitlab.com/topics/gitops/) and a little help from a continuos delivery tool like [Argo CD](https://argo-cd.readthedocs.io/en/stable/) you can simplify your Day 2 operations. The declarative nature of Crunchy Postgres for Kubernetes (CPK) makes it a perfect candidate for gitops. Let's take a look at how gitops and Argo CD can help perform Day 2 Operations on your Crunchy Data Postgres cluster on kubernetes.
+
+The examples in this blog assume that you have installed the CPK Postgres Operator v5.2 or later in the same Kubernetes cluster that you will be deploying the PostgreSQL clusters in.  More information on how to deploy the CPK Postgres Operator can be found [here](https://www.crunchydata.com/developers/get-started/postgres-operator):  
 
 ## The "Git" in Gitops
 
@@ -227,6 +229,21 @@ In order to perform gitops operations you must check-in your infrastructure file
               exporter:
                 image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres-exporter:ubi8-5.2.1-0
 
+          proxy:
+            pgBouncer:
+              image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbouncer:ubi8-1.17-5
+              replicas: 2
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 1
+                    podAffinityTerm:
+                      topologyKey: kubernetes.io/hostname
+                      labelSelector:
+                        matchLabels:
+                          postgres-operator.crunchydata.com/cluster: hippo-ha
+                          postgres-operator.crunchydata.com/role: pgbouncer
+
           patroni:
             dynamicConfiguration:
               postgresql:
@@ -259,6 +276,19 @@ In order to perform gitops operations you must check-in your infrastructure file
           name: <cluster_name>
         spec:
           postgresVersion: 14
+          instances:
+            - name: 'pgdb'
+              replicas: 2
+              resources:
+                limits:
+                  cpu: 1.0
+                  memory: 1Gi
+              dataVolumeClaimSpec:
+                accessModes:
+                - "ReadWriteOnce"
+                resources:
+                  requests:
+                    storage: 5Gi
 
           backups:
             pgbackrest:
@@ -390,18 +420,91 @@ hippo-repo-host-0         2/2     Running     0          5m30s
 
 robertpacheco@Roberts-MBP kustomize % kubectl -n gitopsdemo-qa get pods
 NAME                      READY   STATUS      RESTARTS   AGE
-hippo-backup-f6zq-sdj5z   0/1     Completed   0          3m43s
-hippo-pgdb-56tb-0         5/5     Running     0          4m38s
-hippo-repo-host-0         2/2     Running     0          4m38s
+hippo-backup-s8cw-85kn9   0/1     Completed   0          57s
+hippo-pgdb-dfrr-0         5/5     Running     0          75s
+hippo-pgdb-n6fh-0         5/5     Running     0          75s
+hippo-repo-host-0         2/2     Running     0          75s
 
 robertpacheco@Roberts-MBP kustomize % kubectl -n gitopsdemo-prod get pods
-NAME                      READY   STATUS      RESTARTS   AGE
-hippo-backup-jgtw-j9xwx   0/1     Completed   0          3m35s
-hippo-pgdb-4lnh-0         5/5     Running     0          4m17s
-hippo-pgdb-7lh7-0         5/5     Running     0          4m17s
-hippo-repo-host-0         2/2     Running     0          4m16s
+NAME                               READY   STATUS      RESTARTS   AGE
+hippo-backup-qwzb-gkb75            0/1     Completed   0          51s
+hippo-pgbouncer-7444dc559c-bsjmw   2/2     Running     0          67s
+hippo-pgbouncer-7444dc559c-rk992   2/2     Running     0          67s
+hippo-pgdb-b5hw-0                  5/5     Running     0          68s
+hippo-pgdb-knvc-0                  5/5     Running     0          68s
+hippo-repo-host-0                  2/2     Running     0          67s
 ```
 
-Notice the Postgres cluster differences between namespaces.
+Notice the Postgres cluster differences between namespaces.  The gitopsdemo-dev namespace has one Postgres pod with four containers, a repo host and a completed backup job.  The gitopsdemo-qa namespace has two Postgres pods with five containers each, a repo host and a completed backup job.  The gitopsdemo-prod namespace has two pgBouncer pods in addition to the two postgres pods, repo host and completed backup job.
+
+The use of overlays allows you to standardize you base configuration and then "overlay" that configuration with specific changes.  Take a closer look at the base images and overlays we are using here to see what else has been changed per instance.
+
+The declarative nature of CPK works perfectly with Argo CD to simplify Postgres Cluster deployments the gitops way.
 ### Start / Stop
-Let's stop the dev env
+Let's stop the dev Postgres cluster.  Select the stop-dev application from the start-stop project.  Click on 'Synch' and then click on 'Synchronize' in the right panel.  You will notice that the application is now marked as 'Synched' and the dev pods have been stopped.  The backup job is still listed as completed.  It was not stopped because as a completed job it was not running.
+
+``` bash
+robertpacheco@Roberts-MBP kustomize % kubectl -n gitopsdemo-dev get pods
+NAME                      READY   STATUS      RESTARTS   AGE
+hippo-backup-vh2n-dpw8f   0/1     Completed   0          58m
+```
+
+Now let's start the dev Postgres cluster.  Select the start-dev application from the start-stop project.  Click on 'Synch' and then click on 'Synchronize' in the right panel.  You will notice that the application is now marked as 'Synched' and the dev pods have been started.  You will also notice that the stop-dev job is now marked as 'OutOfSynch' while the start-dev job is marked as 'Synched'.
+
+``` bash
+robertpacheco@Roberts-MBP kustomize % kubectl -n gitopsdemo-dev get pods
+NAME                      READY   STATUS      RESTARTS   AGE
+hippo-backup-vh2n-dpw8f   0/1     Completed   0          61m
+hippo-pgdb-frxt-0         4/4     Running     0          18s
+hippo-repo-host-0         2/2     Running     0          18s
+```
+
+Try this with the qa and prod applications as well.  It becomes very easy to start or stop a postgres cluster when needed using gitops.
+
+### Reset Password
+You security team has decided its time to reset the password for the initial user created at deploy time. First lets determine what the current password is so we can validate that the change took place.
+
+``` bash
+kubectl -n gitopsdemo-dev get secret <cluster_name-pguser-cluster_name> -o jsonpath="{.data.password}" | base64 -d; echo
+```
+
+Make a note of that password.  Select the reset-password-dev application from the reset-password project.  Click on 'Synch' and then click on 'Synchronize' in the right panel.  In this case the status of the application stays listed as 'OutOfSynch' because the operator immediately assigned a new randomly generated password after it was blanked out.  Let's run ths same command again.
+
+``` bash
+kubectl -n gitopsdemo-dev get secret <cluster_name-pguser-cluster_name> -o jsonpath="{.data.password}" | base64 -d; echo
+```
+
+You will notice that the password has been updated.  Try this with the qa and prod applications as well.  Changing the Postgres password has never been easier.
+### Postgres Upgrade
+The PostgreSQL open source community typically releases a new major.minor version of Postgres every quarter.  These releases will contain bug fixes and CVE fixes.  Crunchy Data takes these updates and updates their container images accordingly. It is considered a best practice to take these updates into your Postgres clusters running on Kubernetes as quickly as possible to apply CVE remediations and bug fixes.
+
+Let's check the current Postgres version in th dev cluster:
+
+Using Argo CD and Gitops we will declaratively state our intent by updating the images in our deployment artifacts in git.  Let's take a closer look.
+
+In the postgres.yaml file in our base/postgres directory we have to images:
+* Postgres: image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres:ubi8-14.5-1
+* pgBackrest: image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.40-1
+
+Update that file with the latest images for the same major version:
+* Postgres: image: registry.developers.crunchydata.com/crunchydata/crunchy-postgres:ubi8-14.6-0
+* pgBackrest: image: registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.41-0
+
+When you check these changes into your github repo you will see that the applications in the deploy project are now listed as 'OutOfSynch'.
+
+``` bash
+robertpacheco@Roberts-MBP ~ % kubectl exec -n gitopsdemo-dev hippo-pgdb-frxt-0 -c database -it -- bash
+bash-4.4$ psql
+psql (14.5)
+Type "help" for help.
+
+postgres=# select version();
+                                                 version
+
+---------------------------------------------------------------------------------------------------------
+ PostgreSQL 14.5 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-10), 64-bit
+(1 row)
+
+```
+
+Select the deploy-dev application from the deploy project.  Click on 'Synch' and then click on 'Synchronize' in the right panel. 
