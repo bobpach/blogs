@@ -1,6 +1,6 @@
 apiVersion: postgres-operator.crunchydata.com/v1beta1
 kind: PostgresCluster
 metadata:
-  name: hippo
+  name: <cluster_name>
 spec:
-  shutdown: false 
+  shutdown: true
