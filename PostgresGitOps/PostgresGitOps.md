@@ -21,6 +21,7 @@ In order to perform gitops operations you must check-in your infrastructure file
         resources:
         - resetpassword.yaml
         ```
+        
         </details>
 
         <details><summary>- resetpassword.yaml</summary>
@@ -478,7 +479,7 @@ You will notice that the password has been updated.  Try this with the qa and pr
 ### Postgres Upgrade
 The PostgreSQL open source community typically releases a new major.minor version of Postgres every quarter.  These releases will contain bug fixes and CVE fixes.  Crunchy Data takes these updates and updates their container images accordingly. It is considered a best practice to take these updates into your Postgres clusters running on Kubernetes as quickly as possible to apply CVE remediations and bug fixes.
 
-Let's check the current Postgres version in th dev cluster:
+Let's check the current Postgres version in the dev cluster:
 
 Using Argo CD and Gitops we will declaratively state our intent by updating the images in our deployment artifacts in git.  Let's take a closer look.
 
