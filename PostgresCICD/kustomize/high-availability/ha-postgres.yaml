@@ -1,0 +1,71 @@
+apiVersion: postgres-operator.crunchydata.com/v1beta1
+kind: PostgresCluster
+metadata:
+  name: hippo
+spec:
+  image: bobpachcrunchy/crunchy-postgres:ubi8-13.8-5.2.0-0
+  imagePullSecrets:
+  - name: privatereg
+  postgresVersion: 13
+  shutdown: false
+  instances:
+    - name: pgha1
+      replicas: 2
+      dataVolumeClaimSpec:
+        accessModes:
+        - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: 1Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  postgres-operator.crunchydata.com/cluster: hippo
+                  postgres-operator.crunchydata.com/instance-set: pgha1
+  backups:
+    pgbackrest:
+      image: bobpachcrunchy/crunchy-pgbackrest:ubi8-5.2.0-0
+      repos:
+      - name: repo1
+        schedules:
+          full: "* 1 * * 0"
+          incremental: "0 1 * * 1-6"
+        volume:
+          volumeClaimSpec:
+            accessModes:
+            - "ReadWriteOnce"
+            resources:
+              requests:
+                storage: 1
+  monitoring:
+    pgmonitor:
+      exporter:
+        image: bobpachcrunchy/crunchy-postgres-exporter:ubi8-5.2.0-0
+  proxy:
+    pgBouncer:
+      image: bobpachcrunchy/crunchy-pgbouncer:ubi8-5.2.0-0
+      replicas: 2
+      resources:
+        limits:
+          cpu: 50m
+          memory: 100Mi
+        requests:
+          cpu: 25m
+          memory: 10Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  postgres-operator.crunchydata.com/cluster: hippo
+                  postgres-operator.crunchydata.com/role: pgbouncer
+
+
