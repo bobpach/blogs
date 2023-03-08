@@ -1,2 +1,5 @@
 resources:
 - ha-postgres.yaml
+images:
+- name: bobpachcrunchy/crunchy-postgres
+  newTag: ubi8-14.5-5.2.0-0
