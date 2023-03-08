@@ -1,3 +1,0 @@
-kustomize:
-  images:
-  - bobpachcrunchy/crunchy-postgres:ubi8-13.10-5.2.2-0
