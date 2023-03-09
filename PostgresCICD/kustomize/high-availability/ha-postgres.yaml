@@ -3,7 +3,7 @@ kind: PostgresCluster
 metadata:
   name: hippo
 spec:
-  image: pg-image
+  image: bobpachcrunchy/crunchy-postgres
   imagePullSecrets:
   - name: privatereg
   postgresVersion: 13
@@ -29,7 +29,7 @@ spec:
                   postgres-operator.crunchydata.com/instance-set: pgha1
   backups:
     pgbackrest:
-      image: pgbr-image
+      image: bobpachcrunchy/crunchy-pgbackrest
       repos:
       - name: repo1
         schedules:
