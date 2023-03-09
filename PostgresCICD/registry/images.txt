@@ -7,12 +7,7 @@ docker pull registry.crunchydata.com/crunchydata/crunchy-pgadmin4:ubi8-5.2.0-0
 docker pull registry.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-5.2.0-0
 docker pull registry.crunchydata.com/crunchydata/crunchy-pgbouncer:ubi8-5.2.0-0
 docker pull registry.crunchydata.com/crunchydata/crunchy-upgrade:ubi8-5.2.0-0
-docker pull registry.crunchydata.com/crunchydata/crunchy-postgres:ubi8-14.5-5.2.0-0
-docker pull registry.crunchydata.com/crunchydata/crunchy-postgres-gis:ubi8-14.5-3.1-5.2.0-0
-docker pull registry.crunchydata.com/crunchydata/crunchy-postgres-gis:ubi8-14.5-3.2-5.2.0-0
 docker pull registry.crunchydata.com/crunchydata/crunchy-postgres:ubi8-13.8-5.2.0-0
-docker pull registry.crunchydata.com/crunchydata/crunchy-postgres-gis:ubi8-13.8-3.0-5.2.0-0
-docker pull registry.crunchydata.com/crunchydata/crunchy-postgres-gis:ubi8-13.8-3.1-5.2.0-0
 
 #Login
 docker login registry.ford.com -u crunchydata+push
@@ -27,12 +22,7 @@ docker tag registry.crunchydata.com/crunchydata/crunchy-pgadmin4:ubi8-5.2.0-0 bo
 docker tag registry.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-5.2.0-0 bobpachcrunchy/crunchy-pgbackrest:ubi8-5.2.0-0
 docker tag registry.crunchydata.com/crunchydata/crunchy-pgbouncer:ubi8-5.2.0-0 bobpachcrunchy/crunchy-pgbouncer:ubi8-5.2.0-0
 docker tag registry.crunchydata.com/crunchydata/crunchy-upgrade:ubi8-5.2.0-0 bobpachcrunchy/crunchy-upgrade:ubi8-5.2.0-0
-docker tag registry.crunchydata.com/crunchydata/crunchy-postgres:ubi8-14.5-5.2.0-0 bobpachcrunchy/crunchy-postgres:ubi8-14.5-5.2.0-0
-docker tag registry.crunchydata.com/crunchydata/crunchy-postgres-gis:ubi8-14.5-3.1-5.2.0-0 bobpachcrunchy/crunchy-postgres-gis:ubi8-14.5-3.1-5.2.0-0
-docker tag registry.crunchydata.com/crunchydata/crunchy-postgres-gis:ubi8-14.5-3.2-5.2.0-0 bobpachcrunchy/crunchy-postgres-gis:ubi8-14.5-3.2-5.2.0-0
 docker tag registry.crunchydata.com/crunchydata/crunchy-postgres:ubi8-13.8-5.2.0-0 bobpachcrunchy/crunchy-postgres:ubi8-13.8-5.2.0-0
-docker tag registry.crunchydata.com/crunchydata/crunchy-postgres-gis:ubi8-13.8-3.0-5.2.0-0 bobpachcrunchy/crunchy-postgres-gis:ubi8-13.8-3.0-5.2.0-0
-docker tag registry.crunchydata.com/crunchydata/crunchy-postgres-gis:ubi8-13.8-3.1-5.2.0-0 bobpachcrunchy/crunchy-postgres-gis:ubi8-13.8-3.1-5.2.0-0
 
 #Push
 
@@ -43,10 +33,15 @@ docker push bobpachcrunchy/crunchy-pgadmin4:ubi8-5.2.0-0
 docker push bobpachcrunchy/crunchy-pgbackrest:ubi8-5.2.0-0
 docker push bobpachcrunchy/crunchy-pgbouncer:ubi8-5.2.0-0
 docker push bobpachcrunchy/crunchy-upgrade:ubi8-5.2.0-0
-docker push bobpachcrunchy/crunchy-postgres:ubi8-14.5-5.2.0-0
-docker push bobpachcrunchy/crunchy-postgres-gis:ubi8-14.5-3.1-5.2.0-0
-docker push bobpachcrunchy/crunchy-postgres-gis:ubi8-14.5-3.2-5.2.0-0
 docker push bobpachcrunchy/crunchy-postgres:ubi8-13.8-5.2.0-0
-docker push bobpachcrunchy/crunchy-postgres-gis:ubi8-13.8-3.0-5.2.0-0
-docker push bobpachcrunchy/crunchy-postgres-gis:ubi8-13.8-3.1-5.2.0-0
 
+#Upgrade test
+docker pull registry.crunchydata.com/crunchydata/crunchy-postgres:ubi8-13.10-5.2.2-0
+docker tag registry.crunchydata.com/crunchydata/crunchy-postgres:ubi8-13.10-5.2.2-0 bobpachcrunchy/crunchy-postgres:ubi8-13.10-5.2.2-0
+
+docker pull registry.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-5.2.2-0
+docker tag registry.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-5.2.2-0 bobpachcrunchy/crunchy-pgbackrest:ubi8-5.2.2-0
+
+
+docker push bobpachcrunchy/crunchy-postgres:ubi8-13.10-5.2.2-0
+docker push bobpachcrunchy/crunchy-pgbackrest:ubi8-5.2.2-0
