@@ -1,6 +1,5 @@
 configurations:
 - postgres-cluster-image-transformer.yaml
-
 images:
 - name: pg-image
   newName: bobpachcrunchy/crunchy-postgres
@@ -8,6 +7,7 @@ images:
 - name: pgbr-image
   newName: bobpachcrunchy/crunchy-pgbackrest
   newTag: ubi8-5.2.0-0
-
+- name: bobpachcrunchy/crunchy-postgres
+  newTag: ubi8-13.10-5.2.2-0
 resources:
 - ha-postgres.yaml
