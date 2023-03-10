@@ -27,6 +27,8 @@ spec:
                 matchLabels:
                   postgres-operator.crunchydata.com/cluster: hippo
                   postgres-operator.crunchydata.com/instance-set: pgha1
+  service:
+    type: LoadBalancer              
   backups:
     pgbackrest:
       image: bobpachcrunchy/crunchy-pgbackrest
