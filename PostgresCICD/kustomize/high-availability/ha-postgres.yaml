@@ -8,6 +8,9 @@ spec:
   - name: privatereg
   postgresVersion: 13
   shutdown: false
+  users:
+    - name: postgres
+    - name: hippo
   instances:
     - name: pgha1
       replicas: 2
@@ -16,7 +19,7 @@ spec:
         - "ReadWriteOnce"
         resources:
           requests:
-            storage: 1Gi
+            storage: 10Gi
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -43,7 +46,7 @@ spec:
             - "ReadWriteOnce"
             resources:
               requests:
-                storage: 1
+                storage: 10Gi
   monitoring:
     pgmonitor:
       exporter:
