@@ -8,8 +8,6 @@ class PasswordManager:
     
   @property
   def password(self):
-    print("Getting Password")
-    print(self._password)
     return self._password
   
    # get random password pf length 8 with letters, digits, and symbols    

@@ -1,19 +1,21 @@
-from connect import postgres_connect, test_db_connect, close_connection
 from  userManager import UserManager
 from dbManager import dbManager
+from connectionManager import ConnectionManager
+from databases import Databases
 
-# get postgres database connection
-conn = postgres_connect()
-
-# get cursor
-cur = conn.cursor()
+cm = ConnectionManager()
 
 def run_tests():
 
     try:
+      # get postgres database connection
+      conn = cm.postgres_db_connection  
       
+      # get cursor
+      cur = conn.cursor()
+
       # print the current postgres version  
-      get_version()
+      get_version(cur)
 
       # create the test user
       testUser = UserManager.create_test_user(cur)
@@ -24,8 +26,11 @@ def run_tests():
       # create the test database  
       dbManager.create_database(cur)
       
-      # connect to the test database  
-      test_db_conn = test_db_connect(testUser.password)
+      # connect to the test database with the test user
+      cm.connect_to_test_db(testUser.password)  
+      test_db_conn = cm.test_db_connection
+      
+      # get test_db cursor
       test_cur = test_db_conn.cursor()
     
       # create a test schema in the test database
@@ -36,36 +41,44 @@ def run_tests():
         
       # validate data
       print("Validating Data: Expecting 1000 Rows")
-      test_cur.execute('SELECT COUNT(0) from test_schema.test_table') 
+      test_cur.execute('SELECT COUNT(0) from test_schema.test_tables') 
+      
+      # get the row count from the query result
       row_count = test_cur.fetchone()[0]
-      if row_count ==100:
-          print("Success:  Returned %d" % (row_count))
+      
+      # If returned rows don't match expected value raise an error
+      if row_count == 1000:
+          print("Success:  Returned %d Rows" % (row_count))
       else:
           raise ValueError('Error: Expected 1000 rows but got %d' % (row_count))
-      
-      UserManager.switch_to_postgres_user(cur)
-            
-      # cleanup all test objects roles, and vacuum
-      dbManager.cleanup_test_db_objects(test_cur)
-      test_cur.close()
-      close_connection(test_db_conn)      
-      dbManager.cleanup_postgres_db_objects(cur)
-      cur.close()
-
+    
+    # handle exceptions and cleanup any objects created during test  
     except (Exception) as error:
         print(error)
-        pass
     finally:
-        close_connection(conn)
+        cleanup(cur, test_cur)
         
         
 def cleanup(cur, test_cur):
+    
+    # switch to postgres user
+    UserManager.switch_to_postgres_user(cur)
+    
+    # drop test_table and test_schema 
     dbManager.cleanup_test_db_objects(test_cur)
+    
+    # close cursor and test_db connection
     test_cur.close()
+    cm.close_connection(cm.test_db_connection, Databases.TEST_DB)  
+    
+    # drop test_db and test_user
     dbManager.cleanup_postgres_db_objects(cur)
+    
+    # close cursor and postgres db connection
     cur.close()
+    cm.close_connection(cm.postgres_db_connection, Databases.POSTGRES)
         
-def get_version():
+def get_version(cur):
         
     	# get the postgres version
         print('PostgreSQL database version:')
@@ -75,6 +88,7 @@ def get_version():
         db_version = cur.fetchone()
         
         print(db_version)
-             
+
+# entry point             
 if __name__ == '__main__':
     run_tests()
