@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import psycopg2
 from config import config, test_db_config
+from databases import Databases
 
 class ConnectionManager:
       
@@ -17,7 +18,7 @@ class ConnectionManager:
       @property
       def test_db_connection(self):
           return self._test_db_conn
-      
+     
       # connects to postgres db and sets local connection variable
       def connect_to_postgres_db(self):
           
@@ -34,11 +35,11 @@ class ConnectionManager:
   
           except (Exception, psycopg2.DatabaseError) as error:
             print(error)
-            self.close_connection(self._conn)
+            self.close_connection(self._conn, Databases.POSTGRES)
 
       # connects to test db and sets local connection variable
       def connect_to_test_db(self, password):
-       
+
           self._test_db_conn = None
           
           try:
@@ -52,16 +53,15 @@ class ConnectionManager:
             self._test_db_conn.autocommit = True
           except (Exception, psycopg2.DatabaseError) as error:
             print(error)
-            self.close_connection(self._test_db_conn)
+            self.close_connection(self._test_db_conn, Databases.TEST_DB)
 
       # closes database connection and clears local variable
       def close_connection(self, conn, Databases):
 
-        if conn == None:
+        if conn is None:
           return
-        else:
-          conn.close()
-          print('Database %s connection closed.' % (Databases))
+        conn.close()
+        print('Database %s connection closed.' % (Databases))
         
         if Databases == Databases.TEST_DB:
           self._test_db_conn = None
