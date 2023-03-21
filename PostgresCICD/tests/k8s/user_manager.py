@@ -25,9 +25,6 @@ class UserManager:
           TestUser: TestUser object to manage password state
         """
         try:
-            # initialize password manager
-            # password_manager = PasswordManager()
-
             # create stateful object for the test user
             pwd = PasswordManager.test_db_password
             test_user = TestUser("test_user", pwd)

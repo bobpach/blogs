@@ -1,10 +1,18 @@
+"""Contains the Database Manager Class
+"""
 from psycopg2 import sql
 
 
 class DatabaseManager:
+    """Creates and cleans up test objects
+    """
 
     def create_database(self, cur):
+        """ Creates the test database
 
+        Args:
+            cur connection.cursor: The postgres db connection cursor
+        """
         # set db name
         dbname = sql.Identifier('test_db')
 
@@ -21,27 +29,44 @@ class DatabaseManager:
 
     # create test schema
     def create_schema(self, cur):
+        """ Creates the test schema in the test database
 
+        Args:
+            cur connection.cursor: The test db connection cursor
+        """
         print("Creating test_schema in test_db")
         cur.execute('CREATE SCHEMA test_schema')
 
     # create table in test schema
     def create_table(self, cur):
+        """ Creates the test table with data in the test schema
 
+        Args:
+            cur connection.cursor: The test db connection cursor
+        """
         print("Creating test_table table with data in test_schema")
         cur.execute('CREATE TABLE test_schema.test_table AS SELECT s, \
           md5(random()::text) FROM generate_Series(1,1000) s')
 
     # clean up objects created with test_user
     def cleanup_test_db_objects(self, cur):
+        """ Drops the test table and schema in the test database
 
+        Args:
+            cur connection.cursor: The test db connection cursor
+        """
         print("Dropping test_table")
         cur.execute('DROP TABLE test_schema.test_table')
         print("Dropping test_schema")
         cur.execute('DROP SCHEMA test_schema')
 
-    # clean op objects created with postgres user
+    # clean up objects created with postgres user
     def cleanup_postgres_db_objects(self, cur):
+        """ Drops the test database and user
+
+        Args:
+            cur connection.cursor: The postgres db connection cursor
+        """
         print("Dropping test_db")
         cur.execute('DROP DATABASE test_db')
         print("Dropping test_user")

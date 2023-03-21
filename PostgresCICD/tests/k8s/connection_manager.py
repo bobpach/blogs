@@ -15,25 +15,37 @@ class ConnectionManager:
         psycopg2.connection: A connection to a postgres database
     """
 
-    cm = ConfigManager()
-
     # initialize with a connection to the postgres database
     def __init__(self):
         self.connect_to_postgres_db()
 
+    # initialize the ConfigManager
+    cm = ConfigManager()
+
     # provides postgres db connection
     @property
     def postgres_db_connection(self):
+        """ Postgres db connection property
+
+        Returns:
+            psycopg2.connection: A connection to the postgres database
+        """
         return self._conn
 
     # provides test db connection
     @property
     def test_db_connection(self):
+        """ Test db connection property
+
+        Returns:
+            psycopg2.connection: A connection to the test database
+        """
         return self._test_db_conn
 
     # connects to postgres db and sets local connection variable
     def connect_to_postgres_db(self):
-
+        """ Connects to the postgres database
+        """
         self._conn = None
 
         try:
@@ -51,7 +63,8 @@ class ConnectionManager:
 
     # connects to test db and sets local connection variable
     def connect_to_test_db(self):
-
+        """ Connects to teh test database
+        """
         self._test_db_conn = None
 
         try:
@@ -67,7 +80,12 @@ class ConnectionManager:
 
     # closes database connection and clears local variable
     def close_connection(self, conn, Databases):
+        """ Closes the database connection
 
+        Args:
+            conn psycopg2.connection: The database connection to be closed
+            Databases Enum: The database whose connection is being closed
+        """
         if conn is None:
             return
         conn.close()

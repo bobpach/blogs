@@ -1,43 +1,25 @@
 """ Creates and provides access to a random;y generated password
 """
-import string
-import random
-from kubernetes import client, config
-import os
 import base64
+import os
+import random
+import string
+from kubernetes import client, config
 
 
 class PasswordManager:
     # temp set env vars
-    # these values will likely come from a config map
+    # TODO: these values will likely come from a config map
     os.environ['NAMESPACE'] = 'postgres-dev'
     os.environ['CLUSTER_NAME'] = 'hippo'
 
-    """ Creates and provides access to a random;y generated password
+    """ Creates and provides access to a randomly generated password
     """
     def __init__(self):
         if not hasattr(PasswordManager, 'postgres_password'):
             PasswordManager.postgres_password = self.get_postgres_password()
         if not hasattr(PasswordManager, 'test_db_password'):
             PasswordManager.test_db_password = self.generate_random_password()
-
-    # @property
-    # def test_db_password(self):
-    #     """ Gets a randomly generated password
-
-    #     Returns:
-    #         string: Randomly generated password
-    #     """
-    #     return self._test_db_password
-
-    # @property
-    # def postgres_password(self):
-    #     """ Gets a randomly generated password
-
-    #     Returns:
-    #         string: Randomly generated password
-    #     """
-    #     return self._postgres_password
 
     def generate_random_password(self):
         """ Generate random password of length 12 with letters,
@@ -46,13 +28,16 @@ class PasswordManager:
         if not hasattr(self, '_test_db_password'):
             characters = string.ascii_letters + string.digits \
                 + string.punctuation
-            # self._test_db_password = ''.join(random.choice(characters)
-            #                                  for i in range(12))
             pwd = ''.join(random.choice(characters)
                           for i in range(12))
             return pwd
 
     def get_postgres_password(self):
+        """ Gets the postgres user password from the kubernetes secret
+
+        Returns:
+            string: postgres user password
+        """
         config.load_kube_config()
         kube = client.CoreV1Api()
         ns = os.getenv('NAMESPACE')

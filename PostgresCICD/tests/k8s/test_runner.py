@@ -50,9 +50,6 @@ def run_tests():
         cm.connect_to_test_db()
         test_db_conn = cm.test_db_connection
 
-        # remove test user state
-        # test_user = None
-
         # get test_db cursor
         test_cur = test_db_conn.cursor()
 
@@ -83,7 +80,13 @@ def run_tests():
 
 
 def cleanup(conn, cur, test_cur):
+    """ Cleans all database users and objects created during the tests
 
+    Args:
+        conn psycopg2.connection: The database connection to be closed
+        cur connection.cursor: The postgres db connection cursor
+        test_cur connection.cursor: the test db connection cursor
+    """
     if conn is None:
         return
 
@@ -112,7 +115,11 @@ def cleanup(conn, cur, test_cur):
 
 
 def get_version(cur):
+    """ Connects to the postgres database and gets the current postgres version
 
+    Args:
+        cur (connection.cursor: The postgres db connection cursor
+    """
     # get the postgres version
     print('PostgreSQL database version:')
     cur.execute('SELECT version()')
