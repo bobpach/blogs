@@ -34,6 +34,7 @@ class ConfigManager:
         """
         params = self.get_common_connection_parameters()
         params["database"] = "postgres"
+        # TODO: Move user to configmap
         params["user"] = "postgres"
         params["password"] = PasswordManager.postgres_password
         return params

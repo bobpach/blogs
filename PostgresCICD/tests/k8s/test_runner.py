@@ -6,8 +6,16 @@ Raises:
 from user_manager import UserManager
 from database_manager import DatabaseManager
 from connection_manager import ConnectionManager
+from logging_manager import LoggingManager
 from databases import Databases
 
+# initialize logger
+logger = LoggingManager.logger
+
+# Log entry for new test run
+logger.info('******* STARTING NEW TEST RUN *******')
+
+# initialize globals
 cm = ConnectionManager()
 dbm = DatabaseManager()
 um = UserManager()
@@ -27,54 +35,66 @@ def run_tests():
         test_cur = None
         conn = None
 
+        # TODO: Only run on the primary node
+        # TODO: Connect to replica svc and validate that table was replicated
+        # with correct row count
+        # TODO: Connect to replica svc and validate that drops were replicated
+
         # get postgres database connection
         conn = cm.postgres_db_connection
 
         # get cursor
-        cur = conn.cursor()
+        if conn is not None:
+            cur = conn.cursor()
 
-        # print the current postgres version
-        get_version(cur)
+            # print the current postgres version
+            get_version(cur)
 
-        # # create the test user
-        # test_user = um.create_test_user(cur)
-        um.create_test_user(cur)
+            # # create the test user
+            um.create_test_user(cur)
 
-        # switch from the postgres user to the test user
-        um.switch_to_test_user(cur)
+            # switch from the postgres user to the test user
+            um.switch_to_test_user(cur)
 
-        # create the test database
-        dbm.create_database(cur)
+            # create the test database
+            dbm.create_database(cur)
+        else:
+            err = 'Unable to connect to the postgres database'
+            raise ConnectionError(err, conn)
 
         # connect to the test database with the test user
         cm.connect_to_test_db()
         test_db_conn = cm.test_db_connection
 
-        # get test_db cursor
-        test_cur = test_db_conn.cursor()
+        if test_db_conn is not None:
 
-        # create a test schema in the test database
-        dbm.create_schema(test_cur)
+            # get test_db cursor
+            test_cur = test_db_conn.cursor()
 
-        # create a table with data in the test schema
-        dbm.create_table(test_cur)
+            # create a test schema in the test database
+            dbm.create_schema(test_cur)
 
-        # validate data
-        print("Validating Data: Expecting 1000 Rows")
-        test_cur.execute('SELECT COUNT(0) from test_schema.test_table')
+            # create a table with data in the test schema
+            dbm.create_table(test_cur)
 
-        # get the row count from the query result
-        row_count = test_cur.fetchone()[0]
+            # validate data
+            logger.info("Validating Data: Expecting 1000 Rows")
+            test_cur.execute('SELECT COUNT(0) from test_schema.test_table')
 
-        # If returned rows don't match expected value raise an error
-        if row_count == 1000:
-            print("Success:  Returned %d Rows" % (row_count))
+            # get the row count from the query result
+            row_count = test_cur.fetchone()[0]
+
+            assert row_count == 1000, "row count should be 1000"
+            logger.info("*** Validation Succeeded! ***")
+
         else:
-            raise ValueError('Error: Expected 1000 but got %d' % (row_count))
+            err = 'Unable to connect to the test database'
+            raise ConnectionError(err, conn)
 
     # handle exceptions and cleanup any objects created during test
     except (Exception) as error:
-        print(error)
+        logger.error(error, exc_info=True)
+        # raise
     finally:
         cleanup(conn, cur, test_cur)
 
@@ -113,6 +133,9 @@ def cleanup(conn, cur, test_cur):
     cur.close()
     cm.close_connection(cm.postgres_db_connection, Databases.POSTGRES)
 
+    # remove logging handlers from logger
+    LoggingManager.remove_handlers(logger)
+
 
 def get_version(cur):
     """ Connects to the postgres database and gets the current postgres version
@@ -121,12 +144,12 @@ def get_version(cur):
         cur (connection.cursor: The postgres db connection cursor
     """
     # get the postgres version
-    print('PostgreSQL database version:')
+    logger.info('PostgreSQL database version:')
     cur.execute('SELECT version()')
 
     # display the PostgreSQL database server version
     db_version = cur.fetchone()
-    print(db_version)
+    logger.info(db_version)
 
 
 # entry point

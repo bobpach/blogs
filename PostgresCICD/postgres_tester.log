@@ -1,0 +1,36 @@
+2023-03-22 11:27:38,418 - postgres_tester -         INFO - ******* STARTING NEW TEST RUN *******
+2023-03-22 11:27:38,667 - postgres_tester -         INFO - Connecting to the postgres database...
+2023-03-22 11:27:38,941 - postgres_tester -         INFO - PostgreSQL database version:
+2023-03-22 11:27:38,974 - postgres_tester -         INFO - ('PostgreSQL 13.8 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-10), 64-bit',)
+2023-03-22 11:27:39,073 - postgres_tester -         INFO - Creating test database
+2023-03-22 11:27:39,179 - postgres_tester -         INFO - Assigning test_db privileges to test_user
+2023-03-22 11:27:39,391 - postgres_tester -         INFO - Connecting to the test database...
+2023-03-22 11:27:39,617 - postgres_tester -         INFO - Creating test_schema in test_db
+2023-03-22 11:27:39,649 - postgres_tester -         INFO - Creating test_table with data in test_schema
+2023-03-22 11:27:39,689 - postgres_tester -         INFO - Validating Data: Expecting 1000 Rows
+2023-03-22 11:27:39,719 - postgres_tester -         INFO - *** Validation Succeeded! ***
+2023-03-22 11:27:39,750 - postgres_tester -         INFO - Dropping test_table
+2023-03-22 11:27:39,782 - postgres_tester -         INFO - Dropping test_schema
+2023-03-22 11:27:39,814 - postgres_tester -         INFO - Database Databases.TEST_DB connection closed.
+2023-03-22 11:27:39,814 - postgres_tester -         INFO - Dropping test_db
+2023-03-22 11:27:39,970 - postgres_tester -         INFO - Dropping test_user
+2023-03-22 11:27:40,002 - postgres_tester -         INFO - Database Databases.POSTGRES connection closed.
+2023-03-22 11:28:54,070 - postgres_tester -         INFO - ******* STARTING NEW TEST RUN *******
+2023-03-22 11:28:54,292 - postgres_tester -         INFO - Connecting to the postgres database...
+2023-03-22 11:28:54,294 - postgres_tester -         ERROR - connection to server on socket "/tmp/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+Traceback (most recent call last):
+  File "/Users/robertpacheco/blogs/PostgresCICD/tests/k8s/connection_manager.py", line 59, in connect_to_postgres_db
+    self._conn = psycopg2.connect(**params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server on socket "/tmp/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+
+2023-03-22 11:28:54,320 - postgres_tester -         ERROR - [Errno Unable to connect to the postgres database] None
+Traceback (most recent call last):
+  File "/Users/robertpacheco/blogs/PostgresCICD/tests/k8s/test_runner.py", line 63, in run_tests
+    raise ConnectionError(err, conn)
+ConnectionError: [Errno Unable to connect to the postgres database] None

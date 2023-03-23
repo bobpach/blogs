@@ -6,6 +6,7 @@ Returns:
 import psycopg2
 from config_manager import ConfigManager
 from databases import Databases
+from logging_manager import LoggingManager
 
 
 class ConnectionManager:
@@ -19,8 +20,9 @@ class ConnectionManager:
     def __init__(self):
         self.connect_to_postgres_db()
 
-    # initialize the ConfigManager
+    # initialize globals
     cm = ConfigManager()
+    logger = LoggingManager.logger
 
     # provides postgres db connection
     @property
@@ -53,17 +55,17 @@ class ConnectionManager:
             params = self.cm.get_postgres_connection_parameters()
 
             # connect to the PostgreSQL server
-            print('Connecting to the PostgreSQL database...')
+            self.logger.info('Connecting to the postgres database...')
             self._conn = psycopg2.connect(**params)
             self._conn.autocommit = True
 
         except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
+            self.logger.error(error, exc_info=True)
             self.close_connection(self._conn, Databases.POSTGRES)
 
     # connects to test db and sets local connection variable
     def connect_to_test_db(self):
-        """ Connects to teh test database
+        """ Connects to the test database
         """
         self._test_db_conn = None
 
@@ -71,11 +73,11 @@ class ConnectionManager:
             # read connection parameters
             params = self.cm.get_test_db_connection_parameters()
             # connect to the PostgreSQL server
-            print('Connecting to the PostgreSQL database...')
+            self.logger.info('Connecting to the test database...')
             self._test_db_conn = psycopg2.connect(**params)
             self._test_db_conn.autocommit = True
         except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
+            self.logger.error(error, exc_info=True)
             self.close_connection(self._test_db_conn, Databases.TEST_DB)
 
     # closes database connection and clears local variable
@@ -89,7 +91,7 @@ class ConnectionManager:
         if conn is None:
             return
         conn.close()
-        print('Database %s connection closed.' % (Databases))
+        self.logger.info('Database %s connection closed.' % (Databases))
 
         if Databases == Databases.TEST_DB:
             self._test_db_conn = None

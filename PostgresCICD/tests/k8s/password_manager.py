@@ -29,7 +29,7 @@ class PasswordManager:
             characters = string.ascii_letters + string.digits \
                 + string.punctuation
             pwd = ''.join(random.choice(characters)
-                          for i in range(12))
+                          for i in range(24))
             return pwd
 
     def get_postgres_password(self):
