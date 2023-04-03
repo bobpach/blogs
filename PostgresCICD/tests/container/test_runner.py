@@ -49,7 +49,7 @@ def run_tests():
         is_primary = is_host_primary_data_pod()
         if not is_primary:
             LoggingManager.logger.info("Not primary at test time. "
-                                       "Please see primary data node"
+                                       "Please see primary data node "
                                        "self_test.log for test results.")
             # Keep container alive to prevent crash loopback
             # minimal resources used by this approach
