@@ -80,14 +80,6 @@ class ConfigManager:
     def set_default_config_values(self):
         """ Sets the default config values if not set in configmap
         """
-        # defaults the sb user to postgres
-        if "DB_USER" not in os.environ:
-            os.environ["DB_USER"] = "postgres"
-
-        # defaults the cluster name to hippo
-        if "CLUSTER_NAME" not in os.environ:
-            os.environ["CLUSTER_NAME"] = "hippo"
-
         # defaults the log level to info
         if "LOG_LEVEL" not in os.environ:
             os.environ["LOG_LEVEL"] = "info"

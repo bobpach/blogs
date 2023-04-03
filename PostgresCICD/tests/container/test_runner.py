@@ -221,10 +221,14 @@ def is_host_primary_data_pod():
     kube = client.CoreV1Api()
     ns = os.getenv('NAMESPACE')
     host = os.getenv('HOSTNAME')
+    cluster_name = os.getenv('CLUSTER_NAME')
 
     primary_label = 'postgres-operator.crunchydata.com/role=master'
+    cluster_label = "postgres-operator.crunchydata.com/cluster=%s" \
+        % (cluster_name)
+    labels = primary_label + "," + cluster_label
     primary_pods = kube.list_namespaced_pod(namespace=ns,
-                                            label_selector=primary_label)
+                                            label_selector=labels)
     for pod in primary_pods.items:
         if pod.metadata.name == host:
             return True
@@ -240,10 +244,14 @@ def does_postgres_cluster_have_replicas():
     config.load_incluster_config()
     kube = client.CoreV1Api()
     ns = os.getenv('NAMESPACE')
+    cluster_name = os.getenv('CLUSTER_NAME')
 
     replica_label = 'postgres-operator.crunchydata.com/role=replica'
+    cluster_label = "postgres-operator.crunchydata.com/cluster=%s" \
+        % (cluster_name)
+    labels = replica_label + "," + cluster_label
     replica_pods = kube.list_namespaced_pod(namespace=ns,
-                                            label_selector=replica_label)
+                                            label_selector=labels)
     if replica_pods.items is not None:
         for pod in replica_pods.items:
             if pod is not None:
