@@ -8,7 +8,7 @@ import psycopg2
 import time
 from config_manager import ConfigManager
 from databases import Databases
-from data_node_type import DataNodeType
+from db_connection_type import DBConnectionType
 from logging_manager import LoggingManager
 
 
@@ -19,9 +19,9 @@ class ConnectionManager:
         psycopg2.connection: A connection to a postgres database
     """
 
-    # initialize with a connection to the postgres database
-    def __init__(self):
-        self.connect_to_postgres_db()
+    # # initialize with a connection to the postgres database
+    # def __init__(self):
+    #     self.connect_to_postgres_db()
 
     # initialize globals
     cm = ConfigManager()
@@ -57,6 +57,16 @@ class ConnectionManager:
         """
         return self.replica_test_db_conn
 
+    # provides replica test db connection
+    @property
+    def replica_pod_db_connection(self):
+        """ Test replica test_db connection property via replica pod
+
+        Returns:
+            psycopg2.connection: A connection to the test database
+        """
+        return self.replica_pod_db_conn
+
     # connects to postgres db and sets local connection variable
     def connect_to_postgres_db(self):
         """ Connects to the postgres database
@@ -74,7 +84,7 @@ class ConnectionManager:
         while connected is False:
             try:
                 connection_attempt += 1
-                LoggingManager.logger.debug("Connection attempt number:"
+                LoggingManager.logger.debug('Connection attempt number:'
                                             + str(connection_attempt))
 
                 # read connection parameters
@@ -83,7 +93,7 @@ class ConnectionManager:
                 # connect to the PostgreSQL server
                 self._conn = psycopg2.connect(**params)
                 LoggingManager.logger.info(
-                    "Connecting to the postgres database...")
+                    'Connecting to the postgres database...')
                 self._conn.autocommit = True
                 connected = True
 
@@ -92,14 +102,14 @@ class ConnectionManager:
                 # up to the allotted attempts
                 if connection_attempt < attempts:
                     LoggingManager.logger.debug(
-                        "Postgres is still initializing.")
+                        'Postgres is still initializing.')
                     time.sleep(interval)
                     continue
                 else:
                     # log exception if postgres is not up within allotted time
                     LoggingManager.logger.error(error, exc_info=True)
                     self.close_connection(self._conn, Databases.POSTGRES,
-                                          DataNodeType.PRIMARY)
+                                          DBConnectionType.PRIMARY_SERVICE)
 
     # connects to test db and sets local connection variable
     def connect_to_primary_test_db(self):
@@ -110,19 +120,21 @@ class ConnectionManager:
         try:
             # read connection parameters
             params = self.cm.get_test_db_connection_parameters(
-                DataNodeType.PRIMARY)
+                DBConnectionType.PRIMARY_SERVICE)
             # connect to the PostgreSQL server
             LoggingManager.logger.info(
-                "Connecting to the primary test database...")
+                'Connecting to the primary test database...')
             self.primary_test_db_conn = psycopg2.connect(**params)
             self.primary_test_db_conn.autocommit = True
         except (Exception, psycopg2.DatabaseError) as error:
             LoggingManager.logger.error(error, exc_info=True)
             self.close_connection(self.primary_test_db_conn,
-                                  Databases.TEST_DB, DataNodeType.PRIMARY)
+                                  Databases.TEST_DB,
+                                  DBConnectionType.PRIMARY_SERVICE)
 
-    # connects to test db and sets local connection variable
-    def connect_to_replica_test_db(self):
+    # connects to test db via replica service
+    # and sets local connection variables
+    def connect_to_replica_test_db_via_replica_service(self):
         """ Connects to the replica test database
         """
         self.replica_test_db_conn = None
@@ -130,38 +142,69 @@ class ConnectionManager:
         try:
             # read connection parameters
             params = self.cm.get_test_db_connection_parameters(
-                DataNodeType.REPLICA)
+                DBConnectionType.REPLICA_SERVICE)
             # connect to the PostgreSQL server
             LoggingManager.logger.info(
-                "Connecting to the replica test database...")
+                'Connecting to the replica test '
+                'database via the replica service...')
             self.replica_test_db_conn = psycopg2.connect(**params)
             self.replica_test_db_conn.autocommit = True
         except (Exception, psycopg2.DatabaseError) as error:
             LoggingManager.logger.error(error, exc_info=True)
             self.close_connection(self.replica_test_db_conn,
-                                  Databases.TEST_DB, DataNodeType.REPLICA)
+                                  Databases.TEST_DB,
+                                  DBConnectionType.REPLICA_SERVICE)
 
-    def close_connection(self, conn, Databases, DataNodeType):
+        # connects to test db via replica service and
+        # sets local connection variables
+    def connect_to_replica_test_db_via_replica_pod(self, pod):
+        """ Connects to the replica test database
+        """
+        self.replica_pod_db_conn = None
+
+        try:
+            # read connection parameters
+            params = self.cm.get_test_db_connection_parameters(
+                DBConnectionType.REPLICA_POD, pod)
+            # connect to the PostgreSQL server
+            LoggingManager.logger.info(
+                'Connecting to the replica test database via %s...',
+                pod.metadata.name)
+            self.replica_pod_db_conn = psycopg2.connect(**params)
+            self.replica_pod_db_conn.autocommit = True
+        except (Exception, psycopg2.DatabaseError) as error:
+            LoggingManager.logger.error(error, exc_info=True)
+            self.close_connection(self.replica_pod_db_conn,
+                                  Databases.TEST_DB,
+                                  DBConnectionType.REPLICA_POD)
+
+    def close_connection(self, conn, Databases, DBConnectionType):
         """ Closes the database connection
 
         Args:
             conn psycopg2.connection: The database connection to be closed
             Databases Enum: The database whose connection is being closed
-            DataNodeType Enum: The type of test_db connection being closed
+            DBConnectionType Enum: \
+                The type of test_db connection being closed
         """
         if conn is None:
             return
         conn.close()
 
         if Databases == Databases.TEST_DB:
-            if DataNodeType == DataNodeType.PRIMARY:
-                LoggingManager.logger.info(
-                    "Primary Test Database connection closed.")
-                self.primary_test_db_conn = None
-            else:
-                LoggingManager.logger.info(
-                    "Replica Test Database connection closed.")
-                self.replica_test_db_conn = None
+            match DBConnectionType:
+                case DBConnectionType.PRIMARY_SERVICE:
+                    LoggingManager.logger.info('Primary Test Database '
+                                               'connection closed.')
+                    self.primary_test_db_conn = None
+                case DBConnectionType.REPLICA_SERVICE:
+                    LoggingManager.logger.info('Replica Test Database '
+                                               'connection closed.')
+                    self.replica_test_db_conn = None
+                case _:
+                    LoggingManager.logger.info('Replica Pod Database '
+                                               'connection closed.')
+                    self.replica_pod_db_conn = None
         else:
-            LoggingManager.logger.info("Postgres Database connection closed.")
+            LoggingManager.logger.info('Postgres Database connection closed.')
             self._conn = None

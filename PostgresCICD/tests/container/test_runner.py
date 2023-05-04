@@ -8,9 +8,10 @@ import time
 from connection_manager import ConnectionManager
 from databases import Databases
 from database_manager import DatabaseManager
-from data_node_type import DataNodeType
+from db_connection_type import DBConnectionType
 from kubernetes import client, config
 from logging_manager import LoggingManager
+from replica_manager import ReplicaManager
 from user_manager import UserManager
 
 
@@ -23,6 +24,7 @@ LoggingManager.logger.info('******* STARTING NEW TEST RUN *******')
 # initialize globals
 cm = ConnectionManager()
 dbm = DatabaseManager()
+rm = ReplicaManager()
 um = UserManager()
 
 
@@ -39,13 +41,14 @@ def run_tests():
         conn = None
         primary_test_db_conn = None
         replica_test_db_conn = None
+        replica_pod_db_conn = None
         cur = None
         primary_test_cur = None
         replica_test_cur = None
+        replica_pod_cur = None
 
-        # determine if the cluster has any replica pods
-        replica_exists = does_postgres_cluster_have_replicas()
-
+        # allow time for pod to full initialize
+        time.sleep(5)
         is_primary = is_host_primary_data_pod()
         if not is_primary:
             LoggingManager.logger.info("Not primary at test time. "
@@ -57,6 +60,7 @@ def run_tests():
                 time.sleep(1)
 
         # get postgres database connection
+        cm.connect_to_postgres_db()
         conn = cm.postgres_db_connection
 
         # get cursor
@@ -93,19 +97,35 @@ def run_tests():
             # create a table with data in the test schema
             dbm.create_table(primary_test_cur)
 
-            validate_data(primary_test_cur, DataNodeType.PRIMARY)
+            validate_data(primary_test_cur, DBConnectionType.PRIMARY_SERVICE)
 
-        if replica_exists is True:
-            # connect to the replica test database with the test user
-            time.sleep(10)
-            cm.connect_to_replica_test_db()
+        # allow time for replication to complete
+        time.sleep(10)
+
+        # connect to the replica test database
+        # via the replica service with the test user
+        rm.get_replica_pods()
+        if rm.has_replicas is True:
+
+            cm.connect_to_replica_test_db_via_replica_service()
             replica_test_db_conn = cm.replica_test_db_connection
 
             if replica_test_db_conn is not None:
 
                 # get test_db cursor
                 replica_test_cur = replica_test_db_conn.cursor()
-                validate_data(replica_test_cur, DataNodeType.REPLICA)
+                validate_data(replica_test_cur,
+                              DBConnectionType.REPLICA_SERVICE)
+
+            # validate data at each replica pod
+            for pod in rm.replica_pod_list:
+                cm.connect_to_replica_test_db_via_replica_pod(pod)
+                replica_pod_db_conn = cm.replica_pod_db_connection
+                replica_pod_cur = replica_pod_db_conn.cursor()
+                validate_data(replica_pod_cur,
+                              DBConnectionType.REPLICA_POD, pod)
+                cleanup(replica_pod_cur, Databases.TEST_DB,
+                        DBConnectionType.REPLICA_POD)
         else:
             LoggingManager.logger.warning("No replica pods detected. "
                                           "This postgres cluster is not "
@@ -113,48 +133,65 @@ def run_tests():
     except (Exception) as error:
         LoggingManager.logger.error(error, exc_info=True)
     finally:
-        if replica_exists is True:
-            cleanup(conn, replica_test_cur, Databases.TEST_DB,
-                    DataNodeType.REPLICA)
-        cleanup(conn, primary_test_cur, Databases.TEST_DB,
-                DataNodeType.PRIMARY)
-        cleanup(conn, cur, Databases.POSTGRES, DataNodeType.PRIMARY)
+        if rm.has_replicas is True:
+            cleanup(replica_test_cur, Databases.TEST_DB,
+                    DBConnectionType.REPLICA_SERVICE)
+            cleanup(replica_pod_cur,
+                    Databases.TEST_DB, DBConnectionType.REPLICA_POD)
+        cleanup(primary_test_cur, Databases.TEST_DB,
+                DBConnectionType.PRIMARY_SERVICE)
+        cleanup(cur, Databases.POSTGRES,
+                DBConnectionType.PRIMARY_SERVICE)
 
         # remove logging handlers from logger
         lm.remove_handlers(LoggingManager.logger)
 
 
-def validate_data(test_db_cur, DataNodeType):
+def validate_data(db_cur, DBConnectionType, pod=None):
     """ Determines if the expected data actually exists
 
     Args:
         test_db_cur (psycopg2.connection.cursor): The cursor to the active
         connection being validated
-        DataNodeType (ENUM): Primary or Replica data node connection
+        DBConnectionType (ENUM): Primary or Replica data node connection
 
     Raises:
         ConnectionError: Error received when attempting to validate data
     """
-    if test_db_cur is not None:
+    if db_cur is not None:
 
         # validate data
-        LoggingManager.logger.info('Validating %s Data: Expecting 1000 Rows'
-                                   % (DataNodeType))
-        test_db_cur.execute('SELECT COUNT(0) from test_schema.test_table')
+        if pod is not None:
+            msg = 'Validating {type} Data for pod{pod_name}: Expecting 1000 '\
+                'Rows'.format(type=DBConnectionType,
+                              pod_name=pod.metadata.name)
+        else:
+            msg = 'Validating {type} Data: Expecting 1000 '\
+                'Rows'.format(type=DBConnectionType)
+
+        LoggingManager.logger.info(msg)
+        db_cur.execute('SELECT COUNT(0) from test_schema.test_table')
 
         # get the row count from the query result
-        row_count = test_db_cur.fetchone()[0]
+        row_count = db_cur.fetchone()[0]
 
         assert row_count == 1000, "row count should be 1000"
-        LoggingManager.logger.info("*** %s Validation Succeeded! ***"
-                                   % (DataNodeType))
+
+        if pod is not None:
+            msg = '*** {type} Validation Succeeded for pod {pod_name}! '\
+                '***'.format(type=DBConnectionType, pod_name=pod.metadata.name)
+        else:
+            msg = '*** {type} Validation Succeeded! ***'.format(
+                type=DBConnectionType)
+
+        LoggingManager.logger.info(msg)
 
     else:
-        err = 'Unable to connect to the primary test database'
-        raise ConnectionError(err, test_db_cur)
+        err = 'Unable to validate data.  The cursor is not assigned.'
+        raise ConnectionError(err, db_cur)
 
 
-def cleanup(conn, cur, Databases, DataNodeType):
+def cleanup(cur, Databases, DBConnectionType):
     """ Cleans all database users and objects created during the tests
 
     Args:
@@ -162,8 +199,6 @@ def cleanup(conn, cur, Databases, DataNodeType):
         cur connection.cursor: The postgres db connection cursor
         primary_test_cur connection.cursor: the test db connection cursor
     """
-    if conn is None:
-        return
 
     # switch to postgres user
     if cur is None:
@@ -178,21 +213,25 @@ def cleanup(conn, cur, Databases, DataNodeType):
         # close cursor and postgres db connection
         cur.close()
         cm.close_connection(cm.postgres_db_connection,
-                            Databases.POSTGRES, DataNodeType)
-
+                            Databases.POSTGRES, DBConnectionType)
     # cleanup test db objects
-    if Databases == Databases.TEST_DB:
-        if DataNodeType == DataNodeType.PRIMARY:
-            # drop test_table and test_schema
-            dbm.cleanup_test_db_objects(cur)
-            # close cursor and test_db connections
-            cur.close()
-            cm.close_connection(cm.primary_test_db_connection,
-                                Databases.TEST_DB, DataNodeType)
-        else:
-            cur.close()
-            cm.close_connection(cm.replica_test_db_connection,
-                                Databases.TEST_DB, DataNodeType)
+    else:
+        match DBConnectionType:
+            case DBConnectionType.PRIMARY_SERVICE:
+                # drop test_table and test_schema
+                dbm.cleanup_test_db_objects(cur)
+                # close cursor and test_db connections
+                cur.close()
+                cm.close_connection(cm.primary_test_db_connection,
+                                    Databases.TEST_DB, DBConnectionType)
+            case DBConnectionType.REPLICA_SERVICE:
+                cur.close()
+                cm.close_connection(cm.replica_test_db_connection,
+                                    Databases.TEST_DB, DBConnectionType)
+            case _:
+                cur.close()
+                cm.close_connection(cm.replica_pod_db_connection,
+                                    Databases.TEST_DB, DBConnectionType)
 
 
 def get_version(cur):
@@ -232,31 +271,8 @@ def is_host_primary_data_pod():
     for pod in primary_pods.items:
         if pod.metadata.name == host:
             return True
-    return False
-
-
-def does_postgres_cluster_have_replicas():
-    """ Determine if the container is running replica data pods
-
-    Returns:
-        bool: True if Replica
-    """
-    config.load_incluster_config()
-    kube = client.CoreV1Api()
-    ns = os.getenv('NAMESPACE')
-    cluster_name = os.getenv('CLUSTER_NAME')
-
-    replica_label = 'postgres-operator.crunchydata.com/role=replica'
-    cluster_label = "postgres-operator.crunchydata.com/cluster=%s" \
-        % (cluster_name)
-    labels = replica_label + "," + cluster_label
-    replica_pods = kube.list_namespaced_pod(namespace=ns,
-                                            label_selector=labels)
-    if replica_pods.items is not None:
-        for pod in replica_pods.items:
-            if pod is not None:
-                return True
-    return False
+        else:
+            return False
 
 
 # entry point
