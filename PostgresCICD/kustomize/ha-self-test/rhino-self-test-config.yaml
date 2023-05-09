@@ -1,0 +1,22 @@
+apiVersion: v1
+data:
+  argocd-namespace: argocd
+  argocd-verify-tls: "false"
+  auto-promote: "true"
+  auto-promote-argocd-app-name: test
+  db-user: rhino
+  cluster-name: rhino
+  log-level: debug
+  log-path: /pgdata
+  postgres-conn-attempts: "12"
+  postgres-conn-interval: "5"
+  service-port: "5432"
+  sslmode: require
+kind: ConfigMap
+metadata:
+  labels:
+    vendor: crunchydata
+    postgres-operator.crunchydata.com/cluster: rhino
+  name: rhino-self-test-config
+
+

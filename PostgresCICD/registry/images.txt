@@ -1,4 +1,4 @@
-#Pull
+# Pull
 
 docker pull registry.crunchydata.com/crunchydata/crunchy-postgres-exporter:ubi8-5.2.0-0
 docker pull registry.crunchydata.com/crunchydata/postgres-operator:ubi8-5.2.0-0
@@ -9,11 +9,11 @@ docker pull registry.crunchydata.com/crunchydata/crunchy-pgbouncer:ubi8-5.2.0-0
 docker pull registry.crunchydata.com/crunchydata/crunchy-upgrade:ubi8-5.2.0-0
 docker pull registry.crunchydata.com/crunchydata/crunchy-postgres:ubi8-13.8-5.2.0-0
 
-#Login
-docker login registry.ford.com -u crunchydata+push
+# Login
+docker login hub.cocker.com -u bobpachcrunchy
 
 
-#Tag
+# Tag
 
 docker tag registry.crunchydata.com/crunchydata/crunchy-postgres-exporter:ubi8-5.2.0-0 bobpachcrunchy/crunchy-postgres-exporter:ubi8-5.2.0-0
 docker tag registry.crunchydata.com/crunchydata/postgres-operator:ubi8-5.2.0-0 bobpachcrunchy/postgres-operator:ubi8-5.2.0-0
@@ -35,7 +35,7 @@ docker push bobpachcrunchy/crunchy-pgbouncer:ubi8-5.2.0-0
 docker push bobpachcrunchy/crunchy-upgrade:ubi8-5.2.0-0
 docker push bobpachcrunchy/crunchy-postgres:ubi8-13.8-5.2.0-0
 
-#Upgrade test
+# Upgrade test
 docker pull registry.crunchydata.com/crunchydata/crunchy-postgres:ubi8-13.10-5.2.2-0
 docker tag registry.crunchydata.com/crunchydata/crunchy-postgres:ubi8-13.10-5.2.2-0 bobpachcrunchy/crunchy-postgres:ubi8-13.10-5.2.2-0
 
@@ -45,3 +45,8 @@ docker tag registry.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-5.2.2-0 
 
 docker push bobpachcrunchy/crunchy-postgres:ubi8-13.10-5.2.2-0
 docker push bobpachcrunchy/crunchy-pgbackrest:ubi8-5.2.2-0
+
+# Self Test Image
+docker tag postgres-self-test:0.0.1 bobpachcrunchy/postgres-self-test:0.0.1 
+docker push bobpachcrunchy/postgres-self-test:0.0.1
+docker pull bobpachcrunchy/postgres-self-test:0.0.1

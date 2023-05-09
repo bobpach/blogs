@@ -12,6 +12,7 @@ from db_connection_type import DBConnectionType
 from kubernetes import client, config
 from logging_manager import LoggingManager
 from replica_manager import ReplicaManager
+from sync_manager import SyncManager
 from user_manager import UserManager
 
 
@@ -26,6 +27,7 @@ cm = ConnectionManager()
 dbm = DatabaseManager()
 rm = ReplicaManager()
 um = UserManager()
+sm = SyncManager()
 
 
 def run_tests():
@@ -130,6 +132,11 @@ def run_tests():
             LoggingManager.logger.warning("No replica pods detected. "
                                           "This postgres cluster is not "
                                           "highly available.")
+
+        # Synch argocd app if set in configmap.
+        if os.getenv("AUTO_PROMOTE").lower() == "true":
+            sm.synch_argocd_application()
+
     except (Exception) as error:
         LoggingManager.logger.error(error, exc_info=True)
     finally:

@@ -1,0 +1,173 @@
+apiVersion: postgres-operator.crunchydata.com/v1beta1
+kind: PostgresCluster
+metadata:
+  name: rhino
+spec:
+  image: bobpachcrunchy/crunchy-postgres
+  imagePullSecrets:
+  - name: privatereg
+  - name: crunchyreg
+  postgresVersion: 13
+  shutdown: false
+  users:
+    # - name: postgres
+    - name: rhino
+      options: "SUPERUSER"
+  instances:
+    - name: pgha1
+      replicas: 1
+      containers:
+        - name: selftest
+          image: bobpachcrunchy/postgres-self-test:0.0.76
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ARGOCD_APP_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: auto-promote-argocd-app-name
+            - name: ARGOCD_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: argocd-namespace
+            - name: AUTO_PROMOTE
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: auto-promote
+            - name: ARGOCD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: cicd-argocd-token
+            - name: ARGOCD_VERIFY_TLS
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: argocd_verify_tls
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: db-user
+            - name: DB_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: rhino-pguser-rhino
+            - name: CLUSTER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: cluster-name
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: log-level
+            - name: LOG_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: log-path
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: POSTGRES_CONN_ATTEMPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: postgres-conn-attempts
+            - name: POSTGRES_CONN_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: postgres-conn-interval
+            - name: SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: service-port
+            - name: SSLMODE
+              valueFrom:
+                configMapKeyRef:
+                  name: rhino-self-test-config
+                  key: sslmode
+          volumeMounts:
+          - name: postgres-data
+            readOnly: false
+            mountPath: /pgdata
+      dataVolumeClaimSpec:
+        accessModes:
+        - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: 10Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  postgres-operator.crunchydata.com/cluster: rhino
+                  postgres-operator.crunchydata.com/instance-set: pgha1         
+  backups:
+    pgbackrest:
+      image: bobpachcrunchy/crunchy-pgbackrest
+      repos:
+      - name: repo1
+        schedules:
+          full: "* 1 * * 0"
+          incremental: "0 1 * * 1-6"
+        volume:
+          volumeClaimSpec:
+            accessModes:
+            - "ReadWriteOnce"
+            resources:
+              requests:
+                storage: 10Gi
+  monitoring:
+    pgmonitor:
+      exporter:
+        image: bobpachcrunchy/crunchy-postgres-exporter:ubi8-5.2.0-0
+  # userInterface:
+  #   pgAdmin:
+  #     metadata:
+  #       name: hippo
+  #     image: registry.crunchydata.com/crunchydata/crunchy-pgadmin4:ubi8-5.3.0-0
+  #     dataVolumeClaimSpec:
+  #       accessModes:
+  #       - "ReadWriteOnce"
+  #       resources:
+  #         requests:
+  #           storage: 1Gi
+  #     service:
+  #       type: LoadBalancer
+  proxy:
+    pgBouncer:
+      image: bobpachcrunchy/crunchy-pgbouncer:ubi8-5.2.0-0
+      replicas: 2
+      resources:
+        limits:
+          cpu: 50m
+          memory: 100Mi
+        requests:
+          cpu: 25m
+          memory: 10Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  postgres-operator.crunchydata.com/cluster: rhino
+                  postgres-operator.crunchydata.com/role: pgbouncer
+
+
