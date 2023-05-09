@@ -1,6 +1,7 @@
 apiVersion: v1
 data:  
   argocd-namespace: argocd
+  argocd-service-address: "34.148.254.19"
   argocd-verify-tls: "false"
   auto-promote: "true"
   auto-promote-argocd-app-name: hippo-postgres-qa

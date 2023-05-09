@@ -17,7 +17,7 @@ spec:
       replicas: 3
       containers:
         - name: selftest
-          image: bobpachcrunchy/postgres-self-test:0.0.76
+          image: bobpachcrunchy/postgres-self-test:0.0.87
           imagePullPolicy: IfNotPresent
           env:
             - name: ARGOCD_APP_NAME
@@ -35,16 +35,21 @@ spec:
                 configMapKeyRef:
                   name: hippo-self-test-config
                   key: auto-promote
+            - name: ARGOCD_SERVICE_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: hippo-self-test-config
+                  key: argocd-service-address
             - name: ARGOCD_TOKEN
               valueFrom:
                 secretKeyRef:
                   key: token
-                  name: cicd-argocd-token
+                  name: argocd-token
             - name: ARGOCD_VERIFY_TLS
               valueFrom:
                 configMapKeyRef:
                   name: hippo-self-test-config
-                  key: argocd_verify_tls
+                  key: argocd-verify-tls
             - name: DB_USER
               valueFrom:
                 configMapKeyRef:
