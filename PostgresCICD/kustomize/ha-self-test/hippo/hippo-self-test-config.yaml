@@ -7,7 +7,7 @@ data:
   auto-promote-argocd-app-name: hippo-postgres-qa
   db-user: hippo
   cluster-name: hippo
-  log-level: debug
+  log-level: info 
   log-path: /pgdata
   postgres-conn-attempts: "12"
   postgres-conn-interval: "5"

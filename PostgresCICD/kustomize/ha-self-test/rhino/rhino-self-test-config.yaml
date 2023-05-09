@@ -7,7 +7,7 @@ data:
   auto-promote-argocd-app-name: rhino-postgres-qa
   db-user: rhino
   cluster-name: rhino
-  log-level: debug
+  log-level: info
   log-path: /pgdata
   postgres-conn-attempts: "12"
   postgres-conn-interval: "5"

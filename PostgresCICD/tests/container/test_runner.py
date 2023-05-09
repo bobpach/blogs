@@ -29,6 +29,9 @@ rm = ReplicaManager()
 um = UserManager()
 sm = SyncManager()
 
+has_run_as_primary = False
+is_primary = False
+
 
 def run_tests():
     """ Runs the PostgreSQL deployment tests
@@ -56,6 +59,8 @@ def run_tests():
             LoggingManager.logger.info("Not primary at test time. "
                                        "Please see primary data node "
                                        "self_test.log for test results.")
+            global has_run_as_primary
+            has_run_as_primary = False
             # Keep container alive to prevent crash loopback
             # minimal resources used by this approach
             while True:
@@ -133,6 +138,8 @@ def run_tests():
                                           "This postgres cluster is not "
                                           "highly available.")
 
+        global has_run_as_primary
+        has_run_as_primary = True
         # Synch argocd app if set in configmap.
         if os.getenv("AUTO_PROMOTE").lower() == "true":
             sm.synch_argocd_application()
@@ -282,8 +289,14 @@ def is_host_primary_data_pod():
             return False
 
 
+def rerun_tests():
+    if is_primary and not has_run_as_primary:
+        run_tests()
+
+
 # entry point
 if __name__ == '__main__':
     run_tests()
     while True:
         time.sleep(1)
+        rerun_tests()
