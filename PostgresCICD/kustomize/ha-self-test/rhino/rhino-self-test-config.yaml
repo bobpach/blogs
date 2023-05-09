@@ -3,7 +3,7 @@ data:
   argocd-namespace: argocd
   argocd-verify-tls: "false"
   auto-promote: "true"
-  auto-promote-argocd-app-name: test
+  auto-promote-argocd-app-name: rhino-postgres-qa
   db-user: rhino
   cluster-name: rhino
   log-level: debug

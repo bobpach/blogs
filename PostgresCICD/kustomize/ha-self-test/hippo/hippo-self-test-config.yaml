@@ -3,7 +3,7 @@ data:
   argocd-namespace: argocd
   argocd-verify-tls: "false"
   auto-promote: "true"
-  auto-promote-argocd-app-name: test
+  auto-promote-argocd-app-name: hippo-postgres-qa
   db-user: hippo
   cluster-name: hippo
   log-level: debug
