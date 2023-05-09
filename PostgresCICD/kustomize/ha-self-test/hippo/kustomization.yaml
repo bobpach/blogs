@@ -7,6 +7,4 @@ images:
   newTag: ubi8-5.2.0-0
 resources:
 - hippo-self-test-config.yaml
-- rhino-self-test-config.yaml
 - hippo-ha-postgres.yaml
-- rhino-ha-postgres.yaml
