@@ -54,6 +54,7 @@ def run_tests():
 
         # allow time for pod to full initialize
         time.sleep(5)
+        global is_primary
         is_primary = is_host_primary_data_pod()
         if not is_primary:
             LoggingManager.logger.info("Not primary at test time. "
