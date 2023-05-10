@@ -19,9 +19,6 @@ from user_manager import UserManager
 # initialize logger
 lm = LoggingManager()
 
-# Log entry for new test run
-LoggingManager.logger.info('******* STARTING NEW TEST RUN *******')
-
 # initialize globals
 cm = ConnectionManager()
 dbm = DatabaseManager()
@@ -40,6 +37,9 @@ def run_tests():
         ValueError: If query row count doesn't match
             expected value raise an error.
     """
+
+    # Log entry for new test run
+    LoggingManager.logger.info('******* STARTING NEW TEST RUN *******')
 
     try:
         # set locals
