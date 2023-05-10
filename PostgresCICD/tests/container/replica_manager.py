@@ -33,8 +33,9 @@ class ReplicaManager:
             namespace=ns, label_selector=labels)
 
     def does_postgres_cluster_have_replicas(self):
-        if self._replica_pod_list.items is not None:
-            for pod in self._replica_pod_list.items:
-                if pod is not None:
-                    return True
+        if self.replica_pod_list is not None:
+            if self._replica_pod_list.items is not None:
+                for pod in self._replica_pod_list.items:
+                    if pod is not None:
+                        return True
         return False

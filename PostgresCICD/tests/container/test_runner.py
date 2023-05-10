@@ -29,8 +29,8 @@ rm = ReplicaManager()
 um = UserManager()
 sm = SyncManager()
 
-has_run_as_primary = False
-is_primary = False
+global has_run_as_primary
+global is_primary
 
 
 def run_tests():
@@ -64,8 +64,10 @@ def run_tests():
             has_run_as_primary = False
             # Keep container alive to prevent crash loopback
             # minimal resources used by this approach
-            while True:
-                time.sleep(1)
+            # while True:
+            #     time.sleep(30)
+            #     rerun_tests()
+            return
 
         # get postgres database connection
         cm.connect_to_postgres_db()
@@ -139,7 +141,6 @@ def run_tests():
                                           "This postgres cluster is not "
                                           "highly available.")
 
-        global has_run_as_primary
         has_run_as_primary = True
         # Synch argocd app if set in configmap.
         if os.getenv("AUTO_PROMOTE").lower() == "true":
@@ -148,15 +149,16 @@ def run_tests():
     except (Exception) as error:
         LoggingManager.logger.error(error, exc_info=True)
     finally:
-        if rm.has_replicas is True:
-            cleanup(replica_test_cur, Databases.TEST_DB,
-                    DBConnectionType.REPLICA_SERVICE)
-            cleanup(replica_pod_cur,
-                    Databases.TEST_DB, DBConnectionType.REPLICA_POD)
-        cleanup(primary_test_cur, Databases.TEST_DB,
-                DBConnectionType.PRIMARY_SERVICE)
-        cleanup(cur, Databases.POSTGRES,
-                DBConnectionType.PRIMARY_SERVICE)
+        if is_primary is True:
+            if rm.has_replicas is True:
+                cleanup(replica_test_cur, Databases.TEST_DB,
+                        DBConnectionType.REPLICA_SERVICE)
+                cleanup(replica_pod_cur,
+                        Databases.TEST_DB, DBConnectionType.REPLICA_POD)
+            cleanup(primary_test_cur, Databases.TEST_DB,
+                    DBConnectionType.PRIMARY_SERVICE)
+            cleanup(cur, Databases.POSTGRES,
+                    DBConnectionType.PRIMARY_SERVICE)
 
         # remove logging handlers from logger
         lm.remove_handlers(LoggingManager.logger)
@@ -291,7 +293,13 @@ def is_host_primary_data_pod():
 
 
 def rerun_tests():
-    if is_primary and not has_run_as_primary:
+    """
+        Rerun the tests on failover.
+    """
+    global is_primary
+    is_primary = is_host_primary_data_pod()
+    global has_run_as_primary
+    if is_primary is True and has_run_as_primary is False:
         run_tests()
 
 
@@ -299,5 +307,5 @@ def rerun_tests():
 if __name__ == '__main__':
     run_tests()
     while True:
-        time.sleep(1)
+        time.sleep(30)
         rerun_tests()
