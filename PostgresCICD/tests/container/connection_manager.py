@@ -9,23 +9,27 @@ import time
 from config_manager import ConfigManager
 from databases import Databases
 from db_connection_type import DBConnectionType
+from kubernetes import client, config
 from logging_manager import LoggingManager
 
 
 class ConnectionManager:
     """Opens and closes postgres database connections
-
-    Returns:
-        psycopg2.connection: A connection to a postgres database
     """
-
-    # # initialize with a connection to the postgres database
-    # def __init__(self):
-    #     self.connect_to_postgres_db()
 
     # initialize globals
     cm = ConfigManager()
     lm = LoggingManager()
+
+    # provides postgres db connection
+    @property
+    def kubernetes_connection(self):
+        """ Kubernetes connection property
+
+        Returns:
+            kubernetes.client.CoreV1Api: A connection to the kubernetes cluster
+        """
+        return self.kubernetes_connection
 
     # provides postgres db connection
     @property
@@ -178,6 +182,12 @@ class ConnectionManager:
                                   Databases.TEST_DB,
                                   DBConnectionType.REPLICA_POD)
 
+    def connect_to_kubernetes(self):
+        """Connects to the Kubernetes cluster that the container is running in.
+        """
+        config.load_incluster_config()
+        self.kube = client.CoreV1Api()
+
     def close_connection(self, conn, Databases, DBConnectionType):
         """ Closes the database connection
 
@@ -208,3 +218,9 @@ class ConnectionManager:
         else:
             LoggingManager.logger.info('Postgres Database connection closed.')
             self._conn = None
+
+    def close_kubernetes_connection(self):
+        """Closes the connection to the Kubernetes cluster
+        """
+        self.kube.api_client.close()
+        self.kube = None

@@ -43,7 +43,8 @@ class ConfigManager:
         return params
 
     def get_test_db_connection_parameters(self, DBConnectionType, pod=None):
-        """_summary_
+        """ Gets the test_db connection string parameters \
+            based on DBConnectionType
 
         Args:
             DBConnectionType (Enum): Database connection type
@@ -51,7 +52,7 @@ class ConfigManager:
             The target replica pod. Defaults to None.
 
         Returns:
-            _type_: _description_
+            dictionary: The connection string parameter key / value pairs.
         """
         if DBConnectionType is DBConnectionType.REPLICA_POD:
             params = self.get_replica_pod_connection_parameters(pod)
@@ -65,7 +66,7 @@ class ConfigManager:
         return params
 
     def get_replica_pod_connection_parameters(self, pod):
-        """_summary_
+        """ Gets the replica pod connection string parameters
 
         Args:
             pod (kubernetes.client.models.v1_pod): The target replica pod
@@ -74,7 +75,6 @@ class ConfigManager:
             params (dictionary): Contains replica pod connection parameters
         """
         params = self.get_common_connection_parameters()
-        # params["host"] = pod.metadata.name
         params["host"] = pod.status.pod_ip
 
         return params
@@ -90,6 +90,7 @@ class ConfigManager:
         self.cluster_name = os.getenv('CLUSTER_NAME')
         self.namespace = os.getenv('NAMESPACE')
 
+        # set host parameter based on DBConnectionType
         if DBConnectionType == DBConnectionType.PRIMARY_SERVICE:
             params["host"] = self.cluster_name + "-ha."\
                 + self.namespace + ".svc"
@@ -118,9 +119,17 @@ class ConfigManager:
         """ Sets the default config values if not set in configmap
         """
 
+        # defaults the argocd namespace to argocd
+        if "ARGOCD_NAMESPACE" not in os.environ:
+            os.environ["ARGOCD_NAMESPACE"] = "argocd"
+
+        # defaults the log level to info
+        if "ARGOCD_VERIFY_TLS" not in os.environ:
+            os.environ["ARGOCD_VERIFY_TLS"] = "true"
+
         # defaults the log level to info
         if "LOG_LEVEL" not in os.environ:
-            os.environ["CLUSTER_NAME"] = "hippo"
+            os.environ["LOG_LEVEL"] = "info"
 
         # defaults the log path to /pgdata
         if "LOG_PATH" not in os.environ:

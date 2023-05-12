@@ -1,10 +1,11 @@
 import os
-from kubernetes import client, config
+from connection_manager import ConnectionManager
 
 
 class ReplicaManager:
 
     _replica_pod_list = None
+    cm = ConnectionManager()
 
     @property
     def replica_pod_list(self):
@@ -20,8 +21,8 @@ class ReplicaManager:
         Returns:
             bool: True if Replica
         """
-        config.load_incluster_config()
-        kube = client.CoreV1Api()
+        self.cm.connect_to_kubernetes()
+        kube = self.cm.kubernetes_connection
         ns = os.getenv('NAMESPACE')
         cluster_name = os.getenv('CLUSTER_NAME')
 

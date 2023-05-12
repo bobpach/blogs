@@ -17,7 +17,7 @@ spec:
       replicas: 3
       containers:
         - name: selftest
-          image: bobpachcrunchy/postgres-self-test:0.0.99
+          image: bobpachcrunchy/postgres-self-test:0.0.100
           imagePullPolicy: IfNotPresent
           env:
             - name: ARGOCD_APP_NAME

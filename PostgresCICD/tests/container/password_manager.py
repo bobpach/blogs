@@ -17,7 +17,7 @@ class PasswordManager:
             PasswordManager.test_db_password = self.generate_random_password()
 
     def generate_random_password(self):
-        """ Generate random password of length 12 with letters,
+        """ Generate random password of length 24 with letters,
         digits, and symbols
         """
         if not hasattr(self, '_test_db_password'):

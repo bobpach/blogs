@@ -9,17 +9,14 @@ from connection_manager import ConnectionManager
 from databases import Databases
 from database_manager import DatabaseManager
 from db_connection_type import DBConnectionType
-from kubernetes import client, config
 from logging_manager import LoggingManager
 from replica_manager import ReplicaManager
 from sync_manager import SyncManager
 from user_manager import UserManager
 
 
-# initialize logger
+# initialize classes
 lm = LoggingManager()
-
-# initialize globals
 cm = ConnectionManager()
 dbm = DatabaseManager()
 rm = ReplicaManager()
@@ -60,13 +57,10 @@ def run_tests():
             LoggingManager.logger.info("Not primary at test time. "
                                        "Please see primary data node "
                                        "self_test.log for test results.")
+
+            # assigning last run state
             global has_run_as_primary
             has_run_as_primary = False
-            # Keep container alive to prevent crash loopback
-            # minimal resources used by this approach
-            # while True:
-            #     time.sleep(30)
-            #     rerun_tests()
             return
 
         # get postgres database connection
@@ -141,10 +135,14 @@ def run_tests():
                                           "This postgres cluster is not "
                                           "highly available.")
 
+        # assigning last run state
         has_run_as_primary = True
-        # Synch argocd app if set in configmap.
+
+        # sync argocd app if auto-promote is enabled
         if os.getenv("AUTO_PROMOTE").lower() == "true":
             sm.synch_argocd_application()
+
+        LoggingManager.logger.info('******* SUCCESS: ALL TESTS PASSED *******')
 
     except (Exception) as error:
         LoggingManager.logger.error(error, exc_info=True)
@@ -162,6 +160,7 @@ def run_tests():
 
         # remove logging handlers from logger
         lm.remove_handlers(LoggingManager.logger)
+        cm.close_kubernetes_connection()
 
 
 def validate_data(db_cur, DBConnectionType, pod=None):
@@ -273,8 +272,8 @@ def is_host_primary_data_pod():
     Returns:
         bool: True if Primary
     """
-    config.load_incluster_config()
-    kube = client.CoreV1Api()
+    cm.connect_to_kubernetes()
+    kube = cm.kubernetes_connection
     ns = os.getenv('NAMESPACE')
     host = os.getenv('HOSTNAME')
     cluster_name = os.getenv('CLUSTER_NAME')
