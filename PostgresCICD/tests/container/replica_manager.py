@@ -21,8 +21,8 @@ class ReplicaManager:
         Returns:
             bool: True if Replica
         """
-        self.cm.connect_to_kubernetes()
-        kube = self.cm.kubernetes_connection
+        # self.cm.connect_to_kubernetes()
+        kube = ConnectionManager.kubernetes_connection
         ns = os.getenv('NAMESPACE')
         cluster_name = os.getenv('CLUSTER_NAME')
 

@@ -17,19 +17,14 @@ class ConnectionManager:
     """Opens and closes postgres database connections
     """
 
+    def __init__(self):
+        if not hasattr(ConnectionManager, 'kubernetes_connection'):
+            ConnectionManager.kubernetes_connection = \
+                self.connect_to_kubernetes()
+
     # initialize globals
     cm = ConfigManager()
     lm = LoggingManager()
-
-    # provides postgres db connection
-    @property
-    def kubernetes_connection(self):
-        """ Kubernetes connection property
-
-        Returns:
-            kubernetes.client.CoreV1Api: A connection to the kubernetes cluster
-        """
-        return self.kubernetes_connection
 
     # provides postgres db connection
     @property
@@ -96,7 +91,7 @@ class ConnectionManager:
 
                 # connect to the PostgreSQL server
                 self._conn = psycopg2.connect(**params)
-                LoggingManager.logger.info(
+                LoggingManager.logger.debug(
                     'Connecting to the postgres database...')
                 self._conn.autocommit = True
                 connected = True
@@ -126,7 +121,7 @@ class ConnectionManager:
             params = self.cm.get_test_db_connection_parameters(
                 DBConnectionType.PRIMARY_SERVICE)
             # connect to the PostgreSQL server
-            LoggingManager.logger.info(
+            LoggingManager.logger.debug(
                 'Connecting to the primary test database...')
             self.primary_test_db_conn = psycopg2.connect(**params)
             self.primary_test_db_conn.autocommit = True
@@ -148,7 +143,7 @@ class ConnectionManager:
             params = self.cm.get_test_db_connection_parameters(
                 DBConnectionType.REPLICA_SERVICE)
             # connect to the PostgreSQL server
-            LoggingManager.logger.info(
+            LoggingManager.logger.debug(
                 'Connecting to the replica test '
                 'database via the replica service...')
             self.replica_test_db_conn = psycopg2.connect(**params)
@@ -171,7 +166,7 @@ class ConnectionManager:
             params = self.cm.get_test_db_connection_parameters(
                 DBConnectionType.REPLICA_POD, pod)
             # connect to the PostgreSQL server
-            LoggingManager.logger.info(
+            LoggingManager.logger.debug(
                 'Connecting to the replica test database via %s...',
                 pod.metadata.name)
             self.replica_pod_db_conn = psycopg2.connect(**params)
@@ -185,8 +180,12 @@ class ConnectionManager:
     def connect_to_kubernetes(self):
         """Connects to the Kubernetes cluster that the container is running in.
         """
+
+        LoggingManager.logger.debug("Connecting to kubernetes.")
         config.load_incluster_config()
         self.kube = client.CoreV1Api()
+
+        return self.kube
 
     def close_connection(self, conn, Databases, DBConnectionType):
         """ Closes the database connection
@@ -204,23 +203,23 @@ class ConnectionManager:
         if Databases == Databases.TEST_DB:
             match DBConnectionType:
                 case DBConnectionType.PRIMARY_SERVICE:
-                    LoggingManager.logger.info('Primary Test Database '
-                                               'connection closed.')
+                    LoggingManager.logger.debug('Primary Test Database '
+                                                'connection closed.')
                     self.primary_test_db_conn = None
                 case DBConnectionType.REPLICA_SERVICE:
-                    LoggingManager.logger.info('Replica Test Database '
-                                               'connection closed.')
+                    LoggingManager.logger.debug('Replica Test Database '
+                                                'connection closed.')
                     self.replica_test_db_conn = None
                 case _:
-                    LoggingManager.logger.info('Replica Pod Database '
-                                               'connection closed.')
+                    LoggingManager.logger.debug('Replica Pod Database '
+                                                'connection closed.')
                     self.replica_pod_db_conn = None
         else:
-            LoggingManager.logger.info('Postgres Database connection closed.')
+            LoggingManager.logger.debug('Postgres Database connection closed.')
             self._conn = None
 
     def close_kubernetes_connection(self):
         """Closes the connection to the Kubernetes cluster
         """
-        self.kube.api_client.close()
-        self.kube = None
+        ConnectionManager.kubernetes_connection.api_client.close()
+        LoggingManager.logger.debug("Closed kubernetes connection.")

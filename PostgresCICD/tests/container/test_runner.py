@@ -272,8 +272,8 @@ def is_host_primary_data_pod():
     Returns:
         bool: True if Primary
     """
-    cm.connect_to_kubernetes()
-    kube = cm.kubernetes_connection
+    # cm.connect_to_kubernetes()
+    kube = ConnectionManager.kubernetes_connection
     ns = os.getenv('NAMESPACE')
     host = os.getenv('HOSTNAME')
     cluster_name = os.getenv('CLUSTER_NAME')
