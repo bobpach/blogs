@@ -4,7 +4,7 @@ data:
   argocd-service-address: "34.148.254.19"
   argocd-verify-tls: "false"
   auto-promote: "true"
-  auto-promote-argocd-app-name: hippo-postgres-qa
+  auto-promote-argocd-app-name: postgres-qa
   db-user: hippo
   cluster-name: hippo
   log-level: info 

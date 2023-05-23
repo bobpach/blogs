@@ -44,7 +44,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   key: token
-                  name: argocd-token
+                  name: new-argocd-token
             - name: ARGOCD_VERIFY_TLS
               valueFrom:
                 configMapKeyRef:
