@@ -1,9 +1,0 @@
-namespace: postgres-operator
-
-
-resources:
-- pgo-s3-creds.yaml
-# - configmap-vector-stderr.yaml
-# - configmap-vector-stdout.yaml
-- configmap-vector-s3.yaml
-- postgres.yaml

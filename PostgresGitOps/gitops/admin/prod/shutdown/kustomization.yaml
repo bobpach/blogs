@@ -1,5 +1,0 @@
-bases:
-- ../../../overlays/prod
-
-patchesStrategicMerge:
-- postgres.yaml

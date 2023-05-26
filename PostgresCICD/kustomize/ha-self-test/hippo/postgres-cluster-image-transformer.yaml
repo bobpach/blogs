@@ -1,5 +1,0 @@
-images:
-- path: spec/image
-  kind: PostgresCluster
-- path: spec/backups/pgbackrest/image
-  kind: PostgresCluster

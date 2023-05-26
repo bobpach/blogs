@@ -1,7 +1,0 @@
-namespace: gitopsdemo-dev
-
-bases:
-  - ../../base/postgres
-
-patchesStrategicMerge:
-  - postgres.yaml
